@@ -1,0 +1,1 @@
+export declare const marqueeSlotRecipe: import("../..").SlotRecipeDefinition<"root" | "item" | "content" | "viewport" | "edge", import("../..").SlotRecipeVariantRecord<"root" | "item" | "content" | "viewport" | "edge">>;
