@@ -416,6 +416,223 @@ svg, input, textarea, select {
   padding-bottom: var(--bottom-nav-height);
 }
 
+/* Scrollable page wrapper below topbar */
+.app-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ═══════════════════════════════════════════════════
+   TOP BAR
+   ═══════════════════════════════════════════════════ */
+
+.topbar {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+  gap: 16px;
+  z-index: 40;
+}
+
+/* Left breadcrumb */
+.topbar-page {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-page-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 300ms ease;
+}
+
+.topbar-page-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+}
+
+/* Right cluster */
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Clock */
+.topbar-clock {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.topbar-clock-time {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.topbar-clock-colon {
+  animation: colonBlink 1s step-end infinite;
+}
+
+@keyframes colonBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+.topbar-clock-seconds {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.topbar-clock-date {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding-left: 4px;
+  border-left: 1px solid var(--color-border);
+  margin-left: 2px;
+}
+
+/* Avatar button */
+.topbar-profile-root {
+  position: relative;
+}
+
+.topbar-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 200ms ease, transform 150ms ease;
+}
+
+.topbar-avatar:hover {
+  transform: scale(1.05);
+}
+
+.topbar-avatar-initials {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  transition: color 300ms ease;
+}
+
+/* Profile dropdown */
+.topbar-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 220px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 4px 16px rgba(0,0,0,0.4);
+  overflow: hidden;
+  z-index: 200;
+  animation: dropdownIn 160ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes dropdownIn {
+  from { opacity: 0; transform: scale(0.94) translateY(-6px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.topbar-dropdown-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+}
+
+.topbar-dropdown-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid;
+  background: var(--color-surface-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.topbar-dropdown-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.topbar-dropdown-email {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 1px;
+}
+
+.topbar-dropdown-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 2px 0;
+}
+
+.topbar-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.topbar-dropdown-item:hover {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+}
+
+.topbar-dropdown-item--danger {
+  color: #F43F5E;
+}
+
+.topbar-dropdown-item--danger:hover {
+  background: #F43F5E14;
+  color: #F43F5E;
+}
+
+.topbar-dropdown-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+
 /* --- Sidebar (desktop only) --- */
 .sidebar {
   display: none;
@@ -557,6 +774,313 @@ svg, input, textarea, select {
     bottom: 24px;
     right: 24px;
   }
+
+  .topbar {
+    display: flex;
+  }
+}
+
+/* ===================================================
+   HABITS PAGE
+   =================================================== */
+
+.habits-page {
+  gap: 14px;
+  /* Override page flex so we can manage layout manually */
+}
+
+/* ── Two-column layout ── */
+.habits-layout {
+  display: grid;
+  grid-template-columns: 65fr 35fr;
+  gap: 16px;
+  align-items: start;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 768px) {
+  .habits-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Right panel stack ── */
+.habits-right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Ring card ── */
+.habits-ring-card {
+  text-align: center;
+}
+
+/* ── Mini stat grid inside ring card ── */
+.habits-mini-stat {
+  border-radius: var(--radius-md);
+  padding: 10px 8px;
+  text-align: center;
+}
+
+/* ── Week navigator ── */
+.habits-week-nav {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.habits-week-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.habits-week-label {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.habits-week-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 150ms ease;
+  flex-shrink: 0;
+}
+
+.habits-week-arrow:hover:not(:disabled) {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+}
+
+.habits-week-today-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 100px;
+  border: 1px solid var(--color-primary-muted);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.habits-week-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.habits-day-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px 8px;
+  border: none;
+  border-right: 1px solid var(--color-border);
+  background: transparent;
+  cursor: pointer;
+  transition: background 150ms ease;
+  position: relative;
+}
+
+.habits-day-btn:last-child {
+  border-right: none;
+}
+
+.habits-day-btn:hover:not(:disabled) {
+  background: var(--color-surface-3);
+}
+
+.habits-day-btn--active {
+  background: var(--color-primary-subtle) !important;
+}
+
+.habits-day-btn--today .habits-day-num {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.habits-day-name {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.habits-day-num {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+.habits-day-btn--active .habits-day-name,
+.habits-day-btn--active .habits-day-num {
+  color: var(--color-primary);
+}
+
+.habits-day-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  position: absolute;
+  bottom: 6px;
+}
+
+/* ── Area filter row ── */
+.habits-area-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.habits-area-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+}
+
+.habits-area-pill:hover {
+  filter: brightness(1.1);
+}
+
+/* ── Left panel ── */
+.habits-left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.habits-list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.habits-list-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.habits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Habit row ── */
+.habit-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.habit-row:hover {
+  background: var(--color-surface-3);
+}
+
+.habit-row--done {
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary-muted);
+}
+
+.habit-area-bar {
+  width: 3px;
+  height: 32px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.habit-emoji {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  transition: background 200ms;
+}
+
+.habit-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.habit-name {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  transition: color 200ms;
+}
+
+.habit-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.habit-area-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+.habit-check {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 200ms ease;
+}
+
+.habit-check--done {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 /* ===================================================
@@ -1511,4 +2035,429 @@ svg, input, textarea, select {
 .timeline-card:hover {
   background: var(--color-surface-3);
   border-color: var(--color-text-muted);
+}
+
+/* ═══════════════════════════════════════════════════
+   UX POLISH — Tasks & Habits
+   ═══════════════════════════════════════════════════ */
+
+/* ── Task row: smoother completion transition ── */
+.task-row {
+  transition: background 200ms ease, border-color 200ms ease, padding 200ms ease;
+}
+
+.task-row--done .task-text {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+  transition: color 200ms ease, text-decoration 0ms;
+}
+
+/* Completion flash animation */
+@keyframes checkPop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  60%  { transform: scale(1.2); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+.task-checkbox--checked svg {
+  animation: checkPop 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.habit-check--done svg {
+  animation: checkPop 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Task row: better hover depth ── */
+.task-row:hover {
+  background: var(--color-surface-3);
+  border-color: var(--color-text-muted);
+  z-index: 1;
+}
+
+/* ── Kanban card: hover elevation ── */
+.task-kanban-card {
+  transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease, border-color 150ms ease;
+}
+
+.task-kanban-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  border-color: var(--color-text-muted);
+}
+
+/* ── Habit row: press feedback ── */
+.habit-check {
+  transition: transform 120ms ease, background 200ms ease, border-color 200ms ease;
+}
+
+.habit-check:active {
+  transform: scale(0.88);
+}
+
+.habit-row {
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.habit-row:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
+/* ── Empty state block ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-2);
+}
+
+.empty-state-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--color-surface-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.empty-state-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.empty-state-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  max-width: 220px;
+}
+
+/* ── Focus rings (accessibility) ── */
+.habits-day-btn:focus-visible,
+.tasks-pill:focus-visible,
+.tasks-toolbar-btn:focus-visible,
+.habit-check:focus-visible,
+.task-checkbox:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Progress bar pulse on low completion ── */
+@keyframes progressPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+.tasks-progress-fill:not([style*="100%"]) {
+  animation: progressPulse 3s ease-in-out infinite;
+}
+
+/* ── Topbar mobile: hidden by default ── */
+@media (max-width: 767px) {
+  .topbar-clock-date,
+  .topbar-clock-seconds {
+    display: none;
+  }
+
+  .topbar {
+    padding: 0 12px;
+  }
+}
+
+/* ===================================================
+   FAITH PAGE
+   =================================================== */
+
+.faith-page {
+  gap: 16px;
+}
+
+/* ── Layout ── */
+.faith-layout {
+  display: grid;
+  grid-template-columns: 60fr 40fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .faith-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.faith-left, .faith-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Banner ── */
+.faith-next-banner {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-lg);
+  padding: 24px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.faith-next-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.faith-next-name {
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.faith-next-time {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.faith-next-complete {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #10B981;
+  font-weight: 700;
+}
+
+.faith-clock {
+  font-size: 32px;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+  color: var(--color-text);
+}
+
+/* ── Section Header ── */
+.faith-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── Prayer Row ── */
+.faith-prayer-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 4px;
+  background: transparent;
+  border-bottom: 1px solid var(--color-border);
+  transition: all 200ms ease;
+}
+
+.faith-prayer-row:last-child {
+  border-bottom: none;
+}
+
+.faith-prayer-row--next {
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.faith-prayer-row--done {
+  opacity: 0.6;
+}
+
+.faith-prayer-check {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-border);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 200ms ease;
+  flex-shrink: 0;
+}
+
+.faith-prayer-check:hover {
+  border-color: #10B981;
+}
+
+.faith-prayer-check--done {
+  background: #10B981;
+  border-color: #10B981;
+}
+
+.faith-prayer-ar {
+  font-family: var(--font-arabic);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.faith-prayer-en {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.faith-badge-next {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: #10B981;
+  color: #fff;
+}
+
+.faith-prayer-time {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.faith-prayer-time--active {
+  color: #10B981;
+}
+
+/* ── Dhikr ── */
+.faith-dhikr-card {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.faith-dhikr-card--done {
+  background: var(--color-surface-3);
+  opacity: 0.8;
+}
+
+.faith-dhikr-tap {
+  width: 100%;
+  padding: 16px 10px;
+  border-radius: 10px;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface-3);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 100ms ease;
+  position: relative;
+}
+
+.faith-dhikr-tap:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.faith-dhikr-tap:disabled {
+  cursor: default;
+}
+
+.faith-dhikr-ar {
+  font-family: var(--font-arabic);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.faith-dhikr-count {
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.faith-dhikr-target {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.faith-dhikr-done-mark {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* ── Adhkar & Good Deeds ── */
+.faith-adhkar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all 150ms ease;
+  width: 100%;
+}
+
+.faith-adhkar-item:last-child {
+  border-bottom: none;
+}
+
+.faith-adhkar-item:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.faith-adhkar-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 150ms ease;
+}
+
+.faith-adhkar-check--done {
+  background: #10B981;
+  border-color: #10B981;
+}
+
+/* ── Hadith ── */
+.faith-hadith-card {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.faith-hadith-text {
+  font-family: var(--font-arabic);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+
+
+/* ── Stats ── */
+.faith-stat-mini {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
 }

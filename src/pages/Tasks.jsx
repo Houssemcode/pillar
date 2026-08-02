@@ -799,7 +799,13 @@ export default function Tasks() {
           ═══════════════════════════════════════════════════════ */}
       {viewMode === 'list' && (
         <div className="tasks-list">
-          {filtered.length === 0 && <div className="tasks-empty">No tasks match this filter</div>}
+          {filtered.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-state-icon">✅</div>
+              <div className="empty-state-title">All clear!</div>
+              <div className="empty-state-sub">No tasks match this filter — try adjusting your view or add a new task.</div>
+            </div>
+          )}
           {grouped.map(group => (
             <div key={group.key ?? '_all'}>
               {group.label && <GroupHeader label={group.label} count={group.tasks.length} groupBy={groupBy} />}
@@ -840,9 +846,7 @@ export default function Tasks() {
                   <span className="tasks-group-count">{group.tasks.length}</span>
                 </div>
                 {group.tasks.length === 0 && (
-                  <div style={{ fontSize: 12, color: 'var(--color-text-muted)', padding: '12px 4px', textAlign: 'center', fontStyle: 'italic' }}>
-                    No tasks
-                  </div>
+                  <div className="tasks-empty">No tasks</div>
                 )}
                 {group.tasks.map(task => (
                   <KanbanCard key={task.id} task={task} onToggle={toggle} onOpen={setSelectedTask} />
@@ -859,7 +863,13 @@ export default function Tasks() {
           ═══════════════════════════════════════════════════════ */}
       {viewMode === 'timeline' && (
         <div className="tasks-timeline">
-          {filtered.length === 0 && <div className="tasks-empty">No tasks match this filter</div>}
+          {filtered.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-state-icon">📅</div>
+              <div className="empty-state-title">Nothing on the timeline</div>
+              <div className="empty-state-sub">No tasks match this filter. Try a different view or add something new.</div>
+            </div>
+          )}
           {grouped.map(group => (
             <div key={group.key ?? '_all'} className="timeline-group">
               {group.label && (
