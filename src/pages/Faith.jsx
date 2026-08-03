@@ -67,8 +67,9 @@ function dayOfYear() {
    SUB-COMPONENTS
    ═══════════════════════════════════════════════════ */
 
-/* Next prayer banner */
-function NextPrayerBanner({ prayers, now }) {
+/* Prayer schedule banner & dropdown card */
+function PrayerScheduleCard({ prayers, now, onToggleFard }) {
+  const [isOpen, setIsOpen] = useState(true) // Open by default
   const mins = now.getHours() * 60 + now.getMinutes()
   const next = prayers.find(p => !p.fardDone && timeToMins(p.time) > mins) || null
 
@@ -80,31 +81,102 @@ function NextPrayerBanner({ prayers, now }) {
   }
 
   return (
-    <div className="faith-next-banner">
-      <div style={{ flex: 1 }}>
-        {next ? (
-          <>
-            <div className="faith-next-label">الصلاة القادمة</div>
-            <div className="faith-next-name">
-              <span style={{ fontFamily: 'var(--font-arabic)', fontSize: 22, fontWeight: 700 }}>{next.ar}</span>
-              <span style={{ fontSize: 14, opacity: 0.7, marginRight: 8 }}>{next.en}</span>
+    <div className="card" style={{ padding: 0, marginBottom: 20 }}>
+      {/* Banner Top */}
+      <div className="faith-next-banner" style={{ borderRadius: 0, border: 'none' }}>
+        <div style={{ flex: 1 }}>
+          {next ? (
+            <>
+              <div className="faith-next-label">الصلاة القادمة</div>
+              <div className="faith-next-name">
+                <span style={{ fontFamily: 'var(--font-arabic)', fontSize: 22, fontWeight: 700 }}>{next.ar}</span>
+                <span style={{ fontSize: 14, opacity: 0.7, marginRight: 8 }}>{next.en}</span>
+              </div>
+              <div className="faith-next-time">
+                {next.time}
+                <span style={{ color: EM, fontWeight: 700, marginRight: 6 }}> · بعد {countdown}</span>
+              </div>
+            </>
+          ) : (
+            <div className="faith-next-complete">
+              <span style={{ fontSize: 22 }}>🌙</span>
+              <span>أكملت جميع الصلوات اليوم</span>
             </div>
-            <div className="faith-next-time">
-              {next.time}
-              <span style={{ color: EM, fontWeight: 700, marginRight: 6 }}> · بعد {countdown}</span>
-            </div>
-          </>
-        ) : (
-          <div className="faith-next-complete">
-            <span style={{ fontSize: 22 }}>🌙</span>
-            <span>أكملت جميع الصلوات اليوم</span>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            style={{
+              background: EM, color: '#ffffff', border: 'none',
+              borderRadius: 8, padding: '8px 14px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700,
+              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
+              transition: 'all 150ms'
+            }}
+          >
+            <span>{isOpen ? 'إخفاء جدول الصلوات' : 'عرض جدول الصلوات'}</span>
+            <svg
+              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 200ms' }}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Dropdown Content */}
+      {isOpen && (
+        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--color-border)', background: 'var(--color-surface-1)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
+            <span>مواقيت صلوات اليوم</span>
+            <span>انقر للتعليم كتمت</span>
           </div>
-        )}
-      </div>
-      {/* Clock */}
-      <div className="faith-clock">
-        {now.toLocaleTimeString('ar-DZ', { hour: '2-digit', minute: '2-digit', hour12: false })}
-      </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {prayers.map(p => {
+              const pMins = timeToMins(p.time)
+              const isNext = !p.fardDone && pMins > mins && next?.key === p.key
+              return (
+                <div
+                  key={p.key}
+                  onClick={() => onToggleFard(p.key)}
+                  style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
+                    background: p.fardDone ? 'transparent' : isNext ? 'rgba(16, 185, 129, 0.08)' : 'var(--color-surface-2)',
+                    border: `1px solid ${p.fardDone ? 'var(--color-border)' : isNext ? EM : 'transparent'}`,
+                    transition: 'all 150ms'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                      width: 20, height: 20, borderRadius: '50%',
+                      background: p.fardDone ? EM : 'transparent',
+                      border: `2px solid ${p.fardDone ? EM : 'var(--color-text-muted)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      {p.fardDone && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round"><polyline points="20,6 9,17 4,12" /></svg>}
+                    </div>
+                    <div>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text)', fontFamily: 'var(--font-arabic)' }}>صلاة {p.ar}</span>
+                      <span style={{ fontSize: 13, color: 'var(--color-text-muted)', marginLeft: 8 }}>({p.en})</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: isNext ? EM : 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>{p.time}</span>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)', background: 'var(--color-surface-3)', padding: '2px 8px', borderRadius: 6 }}>
+                      {p.fard} فرض {p.sunnah > 0 ? `· ${p.sunnah} سنة` : ''}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -118,14 +190,14 @@ function KhatmahTracker({ currentPage, onUpdate }) {
   const TOTAL_PAGES = 604
   const pct = Math.round((currentPage / TOTAL_PAGES) * 100)
   const remaining = TOTAL_PAGES - currentPage
-  
+
   return (
     <div className="card" style={{ padding: '20px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(16, 185, 129, 0.15)', color: EM, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
           </div>
           <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>Khatmah Tracker</span>
         </div>
@@ -150,18 +222,18 @@ function KhatmahTracker({ currentPage, onUpdate }) {
 
       {/* Target button */}
       <div style={{ padding: '14px 16px', borderRadius: 10, background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={EM} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={EM} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
         <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text)' }}>Read 2 pages today</span>
       </div>
 
       {/* Log button */}
-      <button 
-        onClick={() => onUpdate(Math.min(TOTAL_PAGES, currentPage + 2))} 
-        style={{ width: '100%', padding: '14px 16px', borderRadius: 10, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: 14, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'background 150ms' }} 
-        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface-3)'} 
+      <button
+        onClick={() => onUpdate(Math.min(TOTAL_PAGES, currentPage + 2))}
+        style={{ width: '100%', padding: '14px 16px', borderRadius: 10, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: 14, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'background 150ms' }}
+        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface-3)'}
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
         Log 2 pages read today
       </button>
     </div>
@@ -235,16 +307,16 @@ function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed }) {
     // Deeds mapped from GOOD_DEEDS_LIST
     ...GOOD_DEEDS_LIST.map(d => {
       let color = '#3B82F6' // default blue
-      let icon = <span style={{fontSize:16}}>{d.emoji}</span>
+      let icon = <span style={{ fontSize: 16 }}>{d.emoji}</span>
       let desc = ''
       if (d.en === 'Sadaqah') {
         color = '#E11D48';
-        icon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        icon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
         desc = 'Charity extinguishes sin as water extinguishes fire — and it does not decrease wealth'
       } else if (d.en === 'Fasting') {
         color = '#10B981';
       }
-      
+
       return {
         id: d.id,
         isDone: goodDeeds.has(d.id),
@@ -255,19 +327,7 @@ function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed }) {
         icon,
         color
       }
-    }),
-    // Prayers mapped from prayers
-    ...prayers.map(p => ({
-      id: p.key,
-      isDone: p.fardDone,
-      onToggle: () => toggleFard(p.key),
-      ar: `صلاة ${p.ar}`,
-      en: `${p.en} Prayer`,
-      desc: p.key === 'asr' ? 'Guard the prayers and especially the middle prayer — whoever misses Asr has lost greatly' : '',
-      icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>,
-      color: '#F59E0B',
-      extraInfo: { time: p.time, fard: p.fard, sunnah: p.sunnah }
-    }))
+    })
   ]
 
   const doneCount = items.filter(i => i.isDone).length;
@@ -277,14 +337,14 @@ function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed }) {
       {/* Header */}
       <div style={{ padding: '20px 20px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--color-border)' }}>
         <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
         </div>
         <div>
           <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>Today's Deeds</div>
           <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>{items.length} available · {doneCount} completed</div>
         </div>
       </div>
-      
+
       {/* Scrollable list */}
       <div className="custom-scrollbar" style={{ maxHeight: 500, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {items.map(item => (
@@ -299,7 +359,7 @@ function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed }) {
             }}
           >
             {/* Header row: clickable to toggle */}
-            <div 
+            <div
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', cursor: 'pointer' }}
               onClick={item.onToggle}
             >
@@ -314,38 +374,15 @@ function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed }) {
                 </div>
               </div>
             </div>
-            
+
             {/* Description */}
             {item.desc && (
               <div style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.4, width: '100%' }}>
                 {item.desc}
               </div>
             )}
-            
-            {/* Hidden content for prayers */}
-            {item.extraInfo && (
-              <details style={{ width: '100%' }}>
-                <summary style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--color-text-muted)', cursor: 'pointer', outline: 'none', userSelect: 'none' }}>
-                  <span style={{ borderBottom: '1px dashed var(--color-border)' }}>التفاصيل (Details)</span>
-                </summary>
-                <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(0,0,0,0.1)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', fontSize: 12, border: '1px solid var(--color-border)' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={{ color: 'var(--color-text-muted)', fontSize: 10 }}>الوقت Time</span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-text)', fontVariantNumeric: 'tabular-nums' }}>{item.extraInfo.time}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span style={{ color: 'var(--color-text-muted)', fontSize: 10 }}>فرض Fard</span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>{item.extraInfo.fard} ركعات</span>
-                  </div>
-                  {item.extraInfo.sunnah > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <span style={{ color: 'var(--color-text-muted)', fontSize: 10 }}>سنة Sunnah</span>
-                      <span style={{ fontWeight: 600, color: 'var(--color-text)' }}>{item.extraInfo.sunnah} ركعات</span>
-                    </div>
-                  )}
-                </div>
-              </details>
-            )}
+
+
           </div>
         ))}
       </div>
@@ -409,26 +446,14 @@ export default function Faith() {
         </div>
       </div>
 
-      {/* ── Next prayer banner ── */}
-      <NextPrayerBanner prayers={prayers} now={now} />
+      {/* ── Prayer schedule banner & dropdown card ── */}
+      <PrayerScheduleCard prayers={prayers} now={now} onToggleFard={toggleFard} />
 
       {/* ── Main two-column layout ── */}
       <div className="faith-layout">
 
         {/* ═══ LEFT 60% ═══ */}
         <div className="faith-left">
-
-          {/* Hadith of the day */}
-          <HadithCard />
-
-          {/* Today's Deeds */}
-          <TodayDeedsList prayers={prayers} toggleFard={toggleFard} goodDeeds={goodDeeds} toggleDeed={toggleDeed} />
-        </div>
-
-        {/* ═══ RIGHT 40% ═══ */}
-        <div className="faith-right">
-
-
 
           {/* Khatmah tracker */}
           <KhatmahTracker currentPage={khatmahPage} onUpdate={setKhatmahPage} />
@@ -494,6 +519,16 @@ export default function Faith() {
               </div>
             )}
           </div>
+
+          {/* Hadith of the day */}
+          <HadithCard />
+
+        </div>
+
+        {/* ═══ RIGHT 40% ═══ */}
+        <div className="faith-right">
+          {/* Today's Deeds */}
+          <TodayDeedsList prayers={prayers} toggleFard={toggleFard} goodDeeds={goodDeeds} toggleDeed={toggleDeed} />
         </div>
       </div>
     </div>
