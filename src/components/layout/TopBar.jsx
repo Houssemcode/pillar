@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { MODULE_THEMES } from '../../theme/moduleThemes'
 
 const PAGE_TITLES = {
@@ -34,6 +34,7 @@ function useDropdown() {
 
 export default function TopBar() {
   const location = useLocation()
+  const navigate = useNavigate()
   const time     = useLiveClock()
   const dropdown = useDropdown()
 
@@ -98,16 +99,32 @@ export default function TopBar() {
               <div className="topbar-dropdown-divider" />
 
               {/* Menu items */}
-              {[
-                { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>, label: 'Profile' },
-                { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M20 12h2M2 12h2M12 20v2M12 2v2"/></svg>, label: 'Preferences' },
-                { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>, label: 'Privacy' },
-              ].map(item => (
-                <button key={item.label} className="topbar-dropdown-item">
-                  <span className="topbar-dropdown-item-icon">{item.icon}</span>
-                  {item.label}
-                </button>
-              ))}
+              <button className="topbar-dropdown-item">
+                <span className="topbar-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </span>
+                Profile
+              </button>
+
+              <button 
+                className="topbar-dropdown-item" 
+                onClick={() => {
+                  dropdown.setOpen(false)
+                  navigate('/preferences')
+                }}
+              >
+                <span className="topbar-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M20 12h2M2 12h2M12 20v2M12 2v2"/></svg>
+                </span>
+                Preferences
+              </button>
+
+              <button className="topbar-dropdown-item">
+                <span className="topbar-dropdown-item-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                </span>
+                Privacy
+              </button>
 
               <div className="topbar-dropdown-divider" />
 

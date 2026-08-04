@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import ProgressRing from '../components/ui/ProgressRing'
+import { useUser } from '../context/UserContext'
 
 /* ─── Theme ────────────────────────────────────────────────── */
 const EM = '#10B981'          // emerald
@@ -68,7 +69,7 @@ function dayOfYear() {
    ═══════════════════════════════════════════════════ */
 
 /* Prayer schedule banner & dropdown card */
-function PrayerScheduleCard({ prayers, now, onToggleFard }) {
+function PrayerScheduleCard({ prayers, now, onToggleFard, isExcused }) {
   const [isOpen, setIsOpen] = useState(true) // Open by default
   const mins = now.getHours() * 60 + now.getMinutes()
   const next = prayers.find(p => !p.fardDone && timeToMins(p.time) > mins) || null
@@ -85,7 +86,12 @@ function PrayerScheduleCard({ prayers, now, onToggleFard }) {
       {/* Banner Top */}
       <div className="faith-next-banner" style={{ borderRadius: 0, border: 'none' }}>
         <div style={{ flex: 1 }}>
-          {next ? (
+          {isExcused ? (
+            <div className="faith-next-complete">
+              <span style={{ fontSize: 22 }}>🌸</span>
+              <span>أنتِ في فترة العذر الشرعي</span>
+            </div>
+          ) : next ? (
             <>
               <div className="faith-next-label">الصلاة القادمة</div>
               <div className="faith-next-name">
@@ -100,7 +106,7 @@ function PrayerScheduleCard({ prayers, now, onToggleFard }) {
           ) : (
             <div className="faith-next-complete">
               <span style={{ fontSize: 22 }}>🌙</span>
-              <span>أكملت جميع الصلوات اليوم</span>
+              <span>تم أداء صلوات اليوم</span>
             </div>
           )}
         </div>
@@ -115,7 +121,7 @@ function PrayerScheduleCard({ prayers, now, onToggleFard }) {
               transition: 'all 150ms'
             }}
           >
-            <span>{isOpen ? 'إخفاء جدول الصلوات' : 'عرض جدول الصلوات'}</span>
+            <span>{isOpen ? 'إخفاء' : 'عرض'}</span>
             <svg
               width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -137,27 +143,33 @@ function PrayerScheduleCard({ prayers, now, onToggleFard }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {prayers.map(p => {
               const pMins = timeToMins(p.time)
-              const isNext = !p.fardDone && pMins > mins && next?.key === p.key
+              const isNext = !isExcused && !p.fardDone && pMins > mins && next?.key === p.key
               return (
                 <div
                   key={p.key}
-                  onClick={() => onToggleFard(p.key)}
+                  onClick={() => !isExcused && onToggleFard(p.key)}
                   style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
-                    background: p.fardDone ? 'transparent' : isNext ? 'rgba(16, 185, 129, 0.08)' : 'var(--color-surface-2)',
-                    border: `1px solid ${p.fardDone ? 'var(--color-border)' : isNext ? EM : 'transparent'}`,
-                    transition: 'all 150ms'
+                    padding: '12px 16px', borderRadius: 10, cursor: isExcused ? 'not-allowed' : 'pointer',
+                    background: isExcused ? 'rgba(0,0,0,0.02)' : p.fardDone ? 'transparent' : isNext ? 'rgba(16, 185, 129, 0.08)' : 'var(--color-surface-2)',
+                    border: `1px solid ${isExcused ? 'transparent' : p.fardDone ? 'var(--color-border)' : isNext ? EM : 'transparent'}`,
+                    transition: 'all 150ms',
+                    opacity: isExcused ? 0.6 : 1
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{
-                      width: 20, height: 20, borderRadius: '50%',
-                      background: p.fardDone ? EM : 'transparent',
-                      border: `2px solid ${p.fardDone ? EM : 'var(--color-text-muted)'}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      width: isExcused ? 'auto' : 20, height: 20, borderRadius: isExcused ? 4 : '50%',
+                      background: isExcused ? 'var(--color-surface-3)' : p.fardDone ? EM : 'transparent',
+                      border: isExcused ? 'none' : `2px solid ${p.fardDone ? EM : 'var(--color-text-muted)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      padding: isExcused ? '0 6px' : 0
                     }}>
-                      {p.fardDone && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round"><polyline points="20,6 9,17 4,12" /></svg>}
+                      {isExcused ? (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-muted)' }}>معفاة</span>
+                      ) : p.fardDone ? (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round"><polyline points="20,6 9,17 4,12" /></svg>
+                      ) : null}
                     </div>
                     <div>
                       <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text)', fontFamily: 'var(--font-arabic)' }}>صلاة {p.ar}</span>
@@ -302,13 +314,19 @@ function HadithCard() {
 }
 
 /* Today's Deeds unified list */
-function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed }) {
+function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed, isExcused }) {
+  const filteredDeeds = isExcused
+    ? GOOD_DEEDS_LIST.filter(d => d.id !== 'fast' && d.id !== 'qiyam')
+    : GOOD_DEEDS_LIST;
+
   const items = [
     // Deeds mapped from GOOD_DEEDS_LIST
-    ...GOOD_DEEDS_LIST.map(d => {
+    ...filteredDeeds.map(d => {
       let color = '#3B82F6' // default blue
       let icon = <span style={{ fontSize: 16 }}>{d.emoji}</span>
       let desc = ''
+      let isRecommended = isExcused && ['sadaqa', 'quran', 'duaa'].includes(d.id)
+
       if (d.en === 'Sadaqah') {
         color = '#E11D48';
         icon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
@@ -325,7 +343,8 @@ function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed }) {
         en: d.en,
         desc,
         icon,
-        color
+        color,
+        isRecommended
       }
     })
   ]
@@ -352,10 +371,12 @@ function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed }) {
             key={item.id}
             style={{
               display: 'flex', flexDirection: 'column', gap: 12,
-              padding: '16px', borderRadius: 12, border: `1px solid ${item.isDone ? 'var(--color-border)' : item.color + '40'}`,
-              background: item.isDone ? 'transparent' : `${item.color}10`,
+              padding: '16px', borderRadius: 12,
+              border: item.isRecommended ? `1px solid ${item.color}80` : `1px solid ${item.isDone ? 'var(--color-border)' : item.color + '40'}`,
+              background: item.isRecommended && !item.isDone ? `${item.color}15` : item.isDone ? 'transparent' : `${item.color}10`,
               transition: 'all 200ms',
-              opacity: item.isDone ? 0.6 : 1
+              opacity: item.isDone ? 0.6 : 1,
+              boxShadow: item.isRecommended && !item.isDone ? `0 0 0 1px ${item.color}30` : 'none'
             }}
           >
             {/* Header row: clickable to toggle */}
@@ -366,6 +387,9 @@ function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ color: item.color, display: 'flex', alignItems: 'center' }}>{item.icon}</span>
                 <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text)' }}>{item.en}</span>
+                {item.isRecommended && (
+                  <span style={{ fontSize: 10, background: item.color, color: '#fff', padding: '2px 6px', borderRadius: 10, fontWeight: 600 }}>مُستحب</span>
+                )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 13, color: 'var(--color-text-muted)', fontFamily: 'var(--font-arabic)' }}>{item.ar}</span>
@@ -394,6 +418,7 @@ function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed }) {
    MAIN PAGE
    ═══════════════════════════════════════════════════ */
 export default function Faith() {
+  const { isExcused } = useUser()
   const [now, setNow] = useState(new Date())
   const [prayers, setPrayers] = useState(
     INITIAL_PRAYERS.map(p => ({ ...p, fardDone: false, sunnahDone: 0 }))
@@ -447,7 +472,7 @@ export default function Faith() {
       </div>
 
       {/* ── Prayer schedule banner & dropdown card ── */}
-      <PrayerScheduleCard prayers={prayers} now={now} onToggleFard={toggleFard} />
+      <PrayerScheduleCard prayers={prayers} now={now} onToggleFard={toggleFard} isExcused={isExcused} />
 
       {/* ── Main two-column layout ── */}
       <div className="faith-layout">
@@ -528,7 +553,14 @@ export default function Faith() {
         {/* ═══ RIGHT 40% ═══ */}
         <div className="faith-right">
           {/* Today's Deeds */}
-          <TodayDeedsList prayers={prayers} toggleFard={toggleFard} goodDeeds={goodDeeds} toggleDeed={toggleDeed} />
+          <TodayDeedsList
+            prayers={prayers}
+            toggleFard={toggleFard}
+            goodDeeds={goodDeeds}
+            toggleDeed={toggleDeed}
+            isExcused={isExcused}
+          />
+
         </div>
       </div>
     </div>
