@@ -10,22 +10,23 @@ import Faith from './pages/Faith'
 import Focus from './pages/Focus'
 import Preferences from './pages/Preferences'
 import { UserProvider, useUser } from './context/UserContext'
+import { ToastProvider } from './context/ToastContext'
 import GenderSelection from './components/auth/GenderSelection'
 
 function AppContent() {
   const { gender } = useUser()
-  
+
   return (
     <>
       {!gender && <GenderSelection />}
       <Routes>
         <Route element={<AppShell />}>
-          <Route path="/" element={<Today />} />
-          <Route path="/tasks" element={<Tasks />} />
-          <Route path="/habits" element={<Habits />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/faith" element={<Faith />} />
-          <Route path="/focus" element={<Focus />} />
+          <Route path="/"           element={<Today />} />
+          <Route path="/tasks"      element={<Tasks />} />
+          <Route path="/habits"     element={<Habits />} />
+          <Route path="/calendar"   element={<Calendar />} />
+          <Route path="/faith"      element={<Faith />} />
+          <Route path="/focus"      element={<Focus />} />
           <Route path="/preferences" element={<Preferences />} />
         </Route>
       </Routes>
@@ -39,7 +40,9 @@ export default function App() {
       <BrowserRouter>
         <ThemeProvider>
           <ThemeController>
-            <AppContent />
+            <ToastProvider>
+              <AppContent />
+            </ToastProvider>
           </ThemeController>
         </ThemeProvider>
       </BrowserRouter>

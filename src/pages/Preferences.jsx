@@ -25,7 +25,7 @@ export default function Preferences() {
       <h1 style={{ marginBottom: '2rem', color: 'var(--color-text)' }}>الإعدادات (Preferences)</h1>
 
       {gender === 'female' && (
-        <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--color-text)' }}>العذر الشرعي (Menstruation Excuse)</h3>
             <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.9rem', maxWidth: '400px' }}>
@@ -60,7 +60,7 @@ export default function Preferences() {
         </div>
       )}
 
-      <div className="card" style={{ padding: '1.5rem' }}>
+      <div className="glass-card" style={{ padding: '1.5rem' }}>
         <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--color-text)' }}>إعدادات الحساب</h3>
         <p style={{ margin: 0, color: 'var(--color-text-muted)' }}>
           الجنس الحالي: <strong>{gender === 'female' ? 'أنثى' : 'ذكر'}</strong>
@@ -77,7 +77,7 @@ export default function Preferences() {
           justifyContent: 'center',
           zIndex: 9999
         }}>
-          <div className="card" style={{ maxWidth: '400px', width: '100%', padding: '2rem', textAlign: 'center' }}>
+          <div className="glass-card" style={{ maxWidth: '400px', width: '100%', padding: '2rem', textAlign: 'center' }}>
             <h3 style={{ marginTop: 0, color: 'var(--color-text)' }}>تأكيد إنهاء العذر</h3>
             <p style={{ color: 'var(--color-text-muted)', marginBottom: '2rem' }}>
               هل أنتِ متأكدة من إيقاف وضع العذر الشرعي؟ سيتم استئناف تتبع الصلاة والصيام.

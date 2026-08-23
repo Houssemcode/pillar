@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react'
 import ProgressRing from '../components/ui/ProgressRing'
+import { useToast } from '../context/ToastContext'
 
 /* ─── Helpers ──────────────────────────────────────────────── */
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const DAYS_FULL  = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-const MONTHS     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const DAYS_FULL = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 function getWeek(anchor = new Date()) {
   const start = new Date(anchor)
@@ -18,8 +19,8 @@ function getWeek(anchor = new Date()) {
 
 function sameDay(a, b) {
   return a.getFullYear() === b.getFullYear() &&
-         a.getMonth()    === b.getMonth()    &&
-         a.getDate()     === b.getDate()
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
 }
 
 function dateKey(d) {
@@ -42,22 +43,22 @@ function seedHistory() {
 }
 
 const INITIAL_HABITS = [
-  { id: 1, name: 'Morning Run',     emoji: '🏃', area: 'Morning',   streak: 12, notes: '', completedDates: seedHistory() },
-  { id: 2, name: 'Read 30 min',     emoji: '📚', area: 'Evening',   streak: 5,  notes: '', completedDates: seedHistory() },
-  { id: 3, name: 'Meditate',        emoji: '🧘', area: 'Morning',   streak: 21, notes: 'Use the Calm app.', completedDates: seedHistory() },
-  { id: 4, name: 'No Sugar',        emoji: '🍎', area: 'Afternoon', streak: 3,  notes: '', completedDates: seedHistory() },
-  { id: 5, name: 'Drink 2L Water',  emoji: '💧', area: 'Morning',   streak: 8,  notes: '', completedDates: seedHistory() },
-  { id: 6, name: 'Cold Shower',     emoji: '🚿', area: 'Morning',   streak: 0,  notes: '', completedDates: seedHistory() },
-  { id: 7, name: 'Evening Journal', emoji: '✍️', area: 'Evening',   streak: 4,  notes: '', completedDates: seedHistory() },
-  { id: 8, name: 'Afternoon Walk',  emoji: '🚶', area: 'Afternoon', streak: 7,  notes: '', completedDates: seedHistory() },
+  { id: 1, name: 'Morning Run', emoji: '🏃', area: 'Morning', streak: 12, notes: '', completedDates: seedHistory() },
+  { id: 2, name: 'Read 30 min', emoji: '📚', area: 'Evening', streak: 5, notes: '', completedDates: seedHistory() },
+  { id: 3, name: 'Meditate', emoji: '🧘', area: 'Morning', streak: 21, notes: 'Use the Calm app.', completedDates: seedHistory() },
+  { id: 4, name: 'No Sugar', emoji: '🍎', area: 'Afternoon', streak: 3, notes: '', completedDates: seedHistory() },
+  { id: 5, name: 'Drink 2L Water', emoji: '💧', area: 'Morning', streak: 8, notes: '', completedDates: seedHistory() },
+  { id: 6, name: 'Cold Shower', emoji: '🚿', area: 'Morning', streak: 0, notes: '', completedDates: seedHistory() },
+  { id: 7, name: 'Evening Journal', emoji: '✍️', area: 'Evening', streak: 4, notes: '', completedDates: seedHistory() },
+  { id: 8, name: 'Afternoon Walk', emoji: '🚶', area: 'Afternoon', streak: 7, notes: '', completedDates: seedHistory() },
 ]
 
 const DEFAULT_AREAS = ['All', 'Morning', 'Afternoon', 'Evening']
 
 const AREA_COLORS = {
-  Morning:   { color: '#F59E0B', bg: '#F59E0B18', border: '#F59E0B40' },
+  Morning: { color: '#F59E0B', bg: '#F59E0B18', border: '#F59E0B40' },
   Afternoon: { color: '#3B82F6', bg: '#3B82F618', border: '#3B82F640' },
-  Evening:   { color: '#6366F1', bg: '#6366F118', border: '#6366F140' },
+  Evening: { color: '#6366F1', bg: '#6366F118', border: '#6366F140' },
 }
 
 function getAreaStyle(area) {
@@ -68,31 +69,31 @@ function buildHeatmap(habits) {
   return Array.from({ length: 35 }, (_, i) => {
     const d = new Date(today)
     d.setDate(today.getDate() - (34 - i))
-    const k    = dateKey(d)
+    const k = dateKey(d)
     const done = habits.filter(h => h.completedDates.has(k)).length
-    const pct  = habits.length > 0 ? done / habits.length : 0
+    const pct = habits.length > 0 ? done / habits.length : 0
     return { date: d, done, pct }
   })
 }
 
 function buildHabitHeatmap(habit) {
   return Array.from({ length: 35 }, (_, i) => {
-    const d    = new Date(today)
+    const d = new Date(today)
     d.setDate(today.getDate() - (34 - i))
     const done = habit.completedDates.has(dateKey(d))
     return { date: d, done }
   })
 }
 
-const EMOJI_LIST = ['🏃','📚','🧘','🍎','💧','🚿','✍️','🚶','🏋️','🎯','🎸','🌱','☕','🥗','🎨','💪','🧠','🛌','🌅','📝','🏊','🚴','🎯','⚽','🧩']
+const EMOJI_LIST = ['🏃', '📚', '🧘', '🍎', '💧', '🚿', '✍️', '🚶', '🏋️', '🎯', '🎸', '🌱', '☕', '🥗', '🎨', '💪', '🧠', '🛌', '🌅', '📝', '🏊', '🚴', '🎯', '⚽', '🧩']
 
 /* ─── New Habit Modal ──────────────────────────────────────── */
 function NewHabitModal({ areas, onSave, onClose }) {
-  const [step, setStep]         = useState(1) // 1 = name+area, 2 = emoji, 3 = confirm
-  const [name, setName]         = useState('')
-  const [area, setArea]         = useState('Morning')
-  const [emoji, setEmoji]       = useState('🎯')
-  const [notes, setNotes]       = useState('')
+  const [step, setStep] = useState(1) // 1 = name+area, 2 = emoji, 3 = confirm
+  const [name, setName] = useState('')
+  const [area, setArea] = useState('Morning')
+  const [emoji, setEmoji] = useState('🎯')
+  const [notes, setNotes] = useState('')
   const [emojiSearch, setEmojiSearch] = useState('')
 
   useEffect(() => {
@@ -125,14 +126,14 @@ function NewHabitModal({ areas, onSave, onClose }) {
           </div>
           <button className="task-modal-close" onClick={onClose}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
 
         {/* Step indicator */}
         <div style={{ display: 'flex', gap: 4, padding: '10px 22px 0' }}>
-          {[1,2,3].map(s => (
+          {[1, 2, 3].map(s => (
             <div key={s} style={{
               flex: 1, height: 3, borderRadius: 2,
               background: s <= step ? 'var(--color-primary)' : 'var(--color-surface-3)',
@@ -291,7 +292,7 @@ function NewHabitModal({ areas, onSave, onClose }) {
 /* ─── Habit Detail Modal ───────────────────────────────────── */
 function HabitDetailModal({ habit, selectedDate, onClose, onToggle, onUpdate }) {
   const [isEditing, setIsEditing] = useState(false)
-  const [draft, setDraft]         = useState({ name: habit.name, emoji: habit.emoji, area: habit.area, notes: habit.notes ?? '' })
+  const [draft, setDraft] = useState({ name: habit.name, emoji: habit.emoji, area: habit.area, notes: habit.notes ?? '' })
 
   useEffect(() => {
     if (!isEditing) setDraft({ name: habit.name, emoji: habit.emoji, area: habit.area, notes: habit.notes ?? '' })
@@ -303,12 +304,12 @@ function HabitDetailModal({ habit, selectedDate, onClose, onToggle, onUpdate }) 
     return () => document.removeEventListener('keydown', h)
   }, [isEditing, onClose])
 
-  const dk       = dateKey(selectedDate)
+  const dk = dateKey(selectedDate)
   const doneToday = habit.completedDates.has(dk)
-  const heatmap  = buildHabitHeatmap(habit)
+  const heatmap = buildHabitHeatmap(habit)
   const totalDone = habit.completedDates.size
-  const last30   = Array.from({ length: 30 }, (_, i) => { const d = new Date(today); d.setDate(today.getDate() - i); return dateKey(d) })
-  const rate30   = Math.round((last30.filter(k => habit.completedDates.has(k)).length / 30) * 100)
+  const last30 = Array.from({ length: 30 }, (_, i) => { const d = new Date(today); d.setDate(today.getDate() - i); return dateKey(d) })
+  const rate30 = Math.round((last30.filter(k => habit.completedDates.has(k)).length / 30) * 100)
   const areaStyle = getAreaStyle(habit.area)
   const set = (k, v) => setDraft(d => ({ ...d, [k]: v }))
 
@@ -346,14 +347,14 @@ function HabitDetailModal({ habit, selectedDate, onClose, onToggle, onUpdate }) 
             {!isEditing && (
               <button className="task-modal-action-btn" onClick={() => setIsEditing(true)} title="Edit habit">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
               </button>
             )}
             <button className="task-modal-close" onClick={isEditing ? handleCancel : onClose}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </div>
@@ -365,7 +366,7 @@ function HabitDetailModal({ habit, selectedDate, onClose, onToggle, onUpdate }) 
             <div>
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: 6 }}>Area</div>
               <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                {['Morning','Afternoon','Evening'].map(a => {
+                {['Morning', 'Afternoon', 'Evening'].map(a => {
                   const s = getAreaStyle(a); const active = draft.area === a
                   return (
                     <button key={a} onClick={() => set('area', a)} style={{
@@ -400,10 +401,10 @@ function HabitDetailModal({ habit, selectedDate, onClose, onToggle, onUpdate }) 
             {/* Stats grid */}
             <div className="task-modal-meta" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
               {[
-                { label: 'Streak',    value: `${habit.streak}d`, color: habit.streak > 0 ? '#F59E0B' : undefined },
-                { label: 'Total',     value: totalDone },
-                { label: '30d rate',  value: `${rate30}%`, color: rate30 >= 70 ? '#10B981' : undefined },
-                { label: 'Area',      value: habit.area, color: areaStyle.color },
+                { label: 'Streak', value: `${habit.streak}d`, color: habit.streak > 0 ? '#F59E0B' : undefined },
+                { label: 'Total', value: totalDone },
+                { label: '30d rate', value: `${rate30}%`, color: rate30 >= 70 ? '#10B981' : undefined },
+                { label: 'Area', value: habit.area, color: areaStyle.color },
               ].map(s => (
                 <div key={s.label} className="task-modal-meta-item" style={{ textAlign: 'center', borderBottom: '1px solid var(--color-border)' }}>
                   <div style={{ fontSize: 18, fontWeight: 800, color: s.color ?? 'var(--color-text)' }}>{s.value}</div>
@@ -476,13 +477,13 @@ function WeekNav({ week, selectedDate, onSelect, onPrevWeek, onNextWeek }) {
     <div className="habits-week-nav">
       <div className="habits-week-header">
         <button className="habits-week-arrow" onClick={onPrevWeek}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15,18 9,12 15,6"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15,18 9,12 15,6" /></svg>
         </button>
         <span className="habits-week-label">
           {MONTHS[week[0].getMonth()]} {week[0].getDate()} – {MONTHS[week[6].getMonth()]} {week[6].getDate()}, {week[6].getFullYear()}
         </span>
         <button className="habits-week-arrow" onClick={onNextWeek} disabled={isCurrentWeek} style={{ opacity: isCurrentWeek ? 0.3 : 1 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9,18 15,12 9,6"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9,18 15,12 9,6" /></svg>
         </button>
         {!isCurrentWeek && (
           <button className="habits-week-today-btn" onClick={() => onSelect(today)}>Today</button>
@@ -491,8 +492,8 @@ function WeekNav({ week, selectedDate, onSelect, onPrevWeek, onNextWeek }) {
       <div className="habits-week-days">
         {week.map(day => {
           const isSelected = sameDay(day, selectedDate)
-          const isToday    = sameDay(day, today)
-          const isFuture   = day > today
+          const isToday = sameDay(day, today)
+          const isFuture = day > today
           return (
             <button
               key={day.toISOString()}
@@ -518,7 +519,7 @@ function AreaFilter({ areas, active, onSelect }) {
     <>
       {areas.map(area => {
         const isActive = active === area
-        const style    = area !== 'All' ? getAreaStyle(area) : null
+        const style = area !== 'All' ? getAreaStyle(area) : null
         return (
           <button key={area} onClick={() => onSelect(area)} className="habits-area-pill" style={{
             background: isActive ? (style ? style.bg : 'var(--color-primary-subtle)') : 'transparent',
@@ -570,8 +571,8 @@ function HabitRow({ habit, done, onToggle, onOpen }) {
         style={{ opacity: 1 }}
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
-          <polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/>
+          <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+          <polyline points="15,3 21,3 21,9" /><line x1="10" y1="14" x2="21" y2="3" />
         </svg>
       </button>
 
@@ -583,7 +584,7 @@ function HabitRow({ habit, done, onToggle, onOpen }) {
       >
         {done && (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round">
-            <polyline points="20,6 9,17 4,12"/>
+            <polyline points="20,6 9,17 4,12" />
           </svg>
         )}
       </div>
@@ -593,12 +594,12 @@ function HabitRow({ habit, done, onToggle, onOpen }) {
 
 /* ─── Stats Panel (right) ──────────────────────────────────── */
 function StatsPanel({ habits, selectedDate }) {
-  const dk       = dateKey(selectedDate)
-  const total    = habits.length
+  const dk = dateKey(selectedDate)
+  const total = habits.length
   const doneToday = habits.filter(h => h.completedDates.has(dk)).length
-  const pct      = total > 0 ? Math.round((doneToday / total) * 100) : 0
+  const pct = total > 0 ? Math.round((doneToday / total) * 100) : 0
   const bestStreak = Math.max(...habits.map(h => h.streak), 0)
-  const heatmap  = buildHeatmap(habits)
+  const heatmap = buildHeatmap(habits)
 
   return (
     <div className="habits-right-panel">
@@ -618,10 +619,10 @@ function StatsPanel({ habits, selectedDate }) {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {[
-            { label: 'Done',        value: doneToday,          accent: true },
-            { label: 'Remaining',   value: total - doneToday,  accent: false },
-            { label: 'Best streak', value: `${bestStreak}d`,   accent: true },
-            { label: 'Total habits',value: total,               accent: false },
+            { label: 'Done', value: doneToday, accent: true },
+            { label: 'Remaining', value: total - doneToday, accent: false },
+            { label: 'Best streak', value: `${bestStreak}d`, accent: true },
+            { label: 'Total habits', value: total, accent: false },
           ].map(s => (
             <div key={s.label} className="habits-mini-stat" style={{
               background: s.accent ? 'var(--color-primary-subtle)' : 'var(--color-surface-3)',
@@ -635,13 +636,13 @@ function StatsPanel({ habits, selectedDate }) {
       </div>
 
       {/* ── Streaks (moved above Activity) ── */}
-      <div className="card">
+      <div className="glass-card">
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: 12 }}>
           Streaks
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[...habits].sort((a, b) => b.streak - a.streak).slice(0, 5).map(h => {
-            const as   = getAreaStyle(h.area)
+            const as = getAreaStyle(h.area)
             const maxS = Math.max(...habits.map(x => x.streak), 1)
             const barW = Math.round((h.streak / maxS) * 100)
             return (
@@ -665,7 +666,7 @@ function StatsPanel({ habits, selectedDate }) {
       </div>
 
       {/* ── Activity heatmap (moved below Streaks) ── */}
-      <div className="card">
+      <div className="glass-card">
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: 12 }}>
           Activity — Last 5 Weeks
         </div>
@@ -677,7 +678,7 @@ function StatsPanel({ habits, selectedDate }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
           {heatmap.map((cell, i) => {
             const isSelected = sameDay(cell.date, selectedDate)
-            const opacity    = cell.pct === 0 ? 1 : cell.pct < 0.34 ? 0.4 : cell.pct < 0.67 ? 0.7 : 1
+            const opacity = cell.pct === 0 ? 1 : cell.pct < 0.34 ? 0.4 : cell.pct < 0.67 ? 0.7 : 1
             return (
               <div key={i} title={`${MONTHS[cell.date.getMonth()]} ${cell.date.getDate()} — ${cell.done} done`} style={{
                 aspectRatio: '1', borderRadius: 4,
@@ -703,16 +704,49 @@ function StatsPanel({ habits, selectedDate }) {
 }
 
 /* ─── Main Component ───────────────────────────────────────── */
+/* ── localStorage helpers for Set serialization ── */
+const STORAGE_KEY = 'pillar_habits'
+
+function habitsToStorage(habits) {
+  return habits.map(h => ({
+    ...h,
+    completedDates: Array.from(h.completedDates),
+  }))
+}
+
+function habitsFromStorage(raw) {
+  if (!raw || !Array.isArray(raw)) return null
+  return raw.map(h => ({
+    ...h,
+    completedDates: new Set(h.completedDates || []),
+  }))
+}
+
 export default function Habits() {
-  const [habits, setHabits]               = useState(INITIAL_HABITS)
-  const [selectedDate, setSelectedDate]   = useState(today)
-  const [weekAnchor, setWeekAnchor]       = useState(today)
-  const [activeArea, setActiveArea]       = useState('All')
-  const [customAreas, setCustomAreas]     = useState([])
-  const [addingArea, setAddingArea]       = useState(false)
-  const [newAreaName, setNewAreaName]     = useState('')
-  const [showNewHabit, setShowNewHabit]   = useState(false)
-  const [detailHabit, setDetailHabit]     = useState(null)
+  const { toastSuccess, toastStreak } = useToast()
+  const [habits, setHabitsRaw] = useState(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      const parsed = stored ? habitsFromStorage(JSON.parse(stored)) : null
+      return parsed || INITIAL_HABITS
+    } catch { return INITIAL_HABITS }
+  })
+
+  const setHabits = (updater) => {
+    setHabitsRaw(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(habitsToStorage(next))) } catch { /* ignore */ }
+      return next
+    })
+  }
+  const [selectedDate, setSelectedDate] = useState(today)
+  const [weekAnchor, setWeekAnchor] = useState(today)
+  const [activeArea, setActiveArea] = useState('All')
+  const [customAreas, setCustomAreas] = useState([])
+  const [addingArea, setAddingArea] = useState(false)
+  const [newAreaName, setNewAreaName] = useState('')
+  const [showNewHabit, setShowNewHabit] = useState(false)
+  const [detailHabit, setDetailHabit] = useState(null)
 
   const week = useMemo(() => getWeek(weekAnchor), [weekAnchor])
 
@@ -734,10 +768,25 @@ export default function Habits() {
     setHabits(prev => prev.map(h => {
       if (h.id !== id) return h
       const alreadyDone = h.completedDates.has(dk)
-      const newDates    = new Set(h.completedDates)
+      const newDates = new Set(h.completedDates)
       if (alreadyDone) { newDates.delete(dk); return { ...h, completedDates: newDates, streak: Math.max(0, h.streak - 1) } }
-      else             { newDates.add(dk);    return { ...h, completedDates: newDates, streak: h.streak + 1 } }
+      else { newDates.add(dk); return { ...h, completedDates: newDates, streak: h.streak + 1 } }
     }))
+
+    // Toast feedback
+    const h = habits.find(h => h.id === id)
+    if (h) {
+      const dk = dateKey(selectedDate)
+      const wasntDone = !h.completedDates.has(dk)
+      if (wasntDone) {
+        const newStreak = h.streak + 1
+        if (newStreak > 0 && newStreak % 7 === 0) {
+          toastStreak(`${newStreak}-day streak! 🔥`, `Keep it up with ${h.emoji} ${h.name}`)
+        } else {
+          toastSuccess(`${h.emoji} ${h.name}`, `Marked done for today!`)
+        }
+      }
+    }
   }
 
   /* ── Update habit ── */
@@ -761,10 +810,10 @@ export default function Habits() {
   }, [habits])
 
   /* ── Filtering ── */
-  const dk             = dateKey(selectedDate)
-  const allAreas       = [...DEFAULT_AREAS, ...customAreas]
+  const dk = dateKey(selectedDate)
+  const allAreas = [...DEFAULT_AREAS, ...customAreas]
   const filteredHabits = activeArea === 'All' ? habits : habits.filter(h => h.area === activeArea)
-  const doneInView     = filteredHabits.filter(h => h.completedDates.has(dk)).length
+  const doneInView = filteredHabits.filter(h => h.completedDates.has(dk)).length
 
   const addArea = () => {
     const name = newAreaName.trim()
@@ -774,20 +823,6 @@ export default function Habits() {
 
   return (
     <div className="page habits-page">
-
-      {/* Header */}
-      <div className="tasks-header" style={{ flexShrink: 0 }}>
-        <div>
-          <h1 className="page-title">Habits</h1>
-          <div className="page-subtitle">Build consistency, day by day</div>
-        </div>
-        <button className="btn btn-primary" onClick={() => setShowNewHabit(true)}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          New Habit
-        </button>
-      </div>
 
       {/* Week nav */}
       <WeekNav week={week} selectedDate={selectedDate} onSelect={handleSelectDay} onPrevWeek={prevWeek} onNextWeek={nextWeek} />
@@ -810,7 +845,7 @@ export default function Habits() {
         ) : (
           <button className="tasks-pill-add" title="Add custom area" onClick={() => setAddingArea(true)}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
           </button>
         )}
@@ -859,6 +894,13 @@ export default function Habits() {
           onClose={() => setShowNewHabit(false)}
         />
       )}
+
+      {/* ── FAB ── */}
+      <button className="fab" onClick={() => setShowNewHabit(true)} aria-label="Add habit">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      </button>
 
       {/* Habit Detail Modal */}
       {detailHabit && (

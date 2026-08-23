@@ -82,7 +82,7 @@ function PrayerScheduleCard({ prayers, now, onToggleFard, isExcused }) {
   }
 
   return (
-    <div className="card" style={{ padding: 0, marginBottom: 20 }}>
+    <div className="glass-card" style={{ padding: 0, marginBottom: 20 }}>
       {/* Banner Top */}
       <div className="faith-next-banner" style={{ borderRadius: 0, border: 'none' }}>
         <div style={{ flex: 1 }}>
@@ -204,7 +204,7 @@ function KhatmahTracker({ currentPage, onUpdate }) {
   const remaining = TOTAL_PAGES - currentPage
 
   return (
-    <div className="card" style={{ padding: '20px' }}>
+    <div className="glass-card" style={{ padding: '20px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -256,7 +256,7 @@ function KhatmahTracker({ currentPage, onUpdate }) {
 function AdhkarSection({ list, done, onToggle, title, icon }) {
   const doneCount = list.filter(a => done.has(a.id)).length
   return (
-    <div className="card">
+    <div className="glass-card">
       <div className="faith-section-header" style={{ marginBottom: 10 }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>{icon} {title}</span>
         <span style={{ fontSize: 11, color: EM }}>{doneCount}/{list.length}</span>
@@ -352,7 +352,7 @@ function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed, isExcused 
   const doneCount = items.filter(i => i.isDone).length;
 
   return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div className="glass-card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <div style={{ padding: '20px 20px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--color-border)' }}>
         <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -463,14 +463,6 @@ export default function Faith() {
   return (
     <div className="page faith-page">
 
-      {/* ── Header ── */}
-      <div className="tasks-header" style={{ flexShrink: 0 }}>
-        <div>
-          <h1 className="page-title">Faith · الإيمان</h1>
-          <div className="page-subtitle">مواقيت الصلاة · الأذكار · تتبع الختمة</div>
-        </div>
-      </div>
-
       {/* ── Prayer schedule banner & dropdown card ── */}
       <PrayerScheduleCard prayers={prayers} now={now} onToggleFard={toggleFard} isExcused={isExcused} />
 
@@ -480,11 +472,9 @@ export default function Faith() {
         {/* ═══ LEFT 60% ═══ */}
         <div className="faith-left">
 
-          {/* Khatmah tracker */}
-          <KhatmahTracker currentPage={khatmahPage} onUpdate={setKhatmahPage} />
 
           {/* Adhkar tabs */}
-          <div className="card" style={{ padding: '16px 18px' }}>
+          <div className="glass-card" style={{ padding: '16px 18px' }}>
             <div className="faith-section-header" style={{ marginBottom: 12 }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>الأذكار</span>
               <a href="#" style={{ fontSize: 11, color: EM, textDecoration: 'none', fontWeight: 600 }}>أذكار وأدعية</a>
@@ -552,16 +542,21 @@ export default function Faith() {
 
         {/* ═══ RIGHT 40% ═══ */}
         <div className="faith-right">
-          {/* Today's Deeds */}
-          <TodayDeedsList
-            prayers={prayers}
-            toggleFard={toggleFard}
-            goodDeeds={goodDeeds}
-            toggleDeed={toggleDeed}
-            isExcused={isExcused}
-          />
-
+          {/* Khatmah tracker */}
+          <KhatmahTracker currentPage={khatmahPage} onUpdate={setKhatmahPage} />
         </div>
+      </div>
+
+      {/* ═══ Bottom Center ═══ */}
+      <div className="faith-bottom-center">
+        {/* Today's Deeds */}
+        <TodayDeedsList
+          prayers={prayers}
+          toggleFard={toggleFard}
+          goodDeeds={goodDeeds}
+          toggleDeed={toggleDeed}
+          isExcused={isExcused}
+        />
       </div>
     </div>
   )

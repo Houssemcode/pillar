@@ -84,23 +84,21 @@ export default function BottomNav() {
       {NAV_ITEMS.map((item) => {
         const active = isActive(item)
         const moduleTheme = item.moduleKey ? MODULE_THEMES[item.moduleKey] : null
+        const activeColor = moduleTheme ? moduleTheme.color : 'var(--color-primary)'
         return (
           <NavLink
             key={item.to}
             to={item.to}
-            className="bottom-nav-item"
-            style={active ? {
-              color: moduleTheme ? moduleTheme.color : 'var(--color-text-secondary)',
-            } : {}}
+            className={`bottom-nav-item${active ? ' active' : ''}`}
+            style={active ? { color: activeColor } : {}}
           >
-            <span className="bottom-nav-icon">{item.icon}</span>
+            <span
+              className="bottom-nav-icon"
+              style={active ? { background: `${activeColor}18` } : {}}
+            >
+              {item.icon}
+            </span>
             <span className="bottom-nav-label">{item.label}</span>
-            {active && (
-              <span
-                className="bottom-nav-dot"
-                style={{ background: moduleTheme ? moduleTheme.color : 'var(--color-text-secondary)' }}
-              />
-            )}
           </NavLink>
         )
       })}

@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import { useLocalStorage } from '../hooks/useLocalStorage'
+import { useToast } from '../context/ToastContext'
 
 /* ─── Data ─────────────────────────────────────────────────── */
 const INITIAL_TASKS = [
@@ -498,7 +500,8 @@ function GroupHeader({ label, count, groupBy }) {
 
 /* ─── Main Component ───────────────────────────────────────── */
 export default function Tasks() {
-  const [tasks, setTasks] = useState(INITIAL_TASKS)
+  const { toastSuccess } = useToast()
+  const [tasks, setTasks] = useLocalStorage('pillar_tasks', INITIAL_TASKS)
   const [smartView, setSmartView] = useState('all')
   const [activeList, setActiveList] = useState(null)
   const [activeTag, setActiveTag] = useState(null)
@@ -515,6 +518,7 @@ export default function Tasks() {
 
   const groupDropdown = useDropdown()
   const moreDropdown = useDropdown()
+  const filterDropdown = useDropdown()
 
   /* ── Derived ── */
   const done = tasks.filter(t => t.done).length
@@ -534,7 +538,14 @@ export default function Tasks() {
   const grouped = groupTasks(sorted, groupBy)   // ← all three views use this
 
   /* ── Handlers ── */
-  const toggle = id => setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t))
+  const toggle = id => {
+    setTasks(prev => {
+      const updated = prev.map(t => t.id === id ? { ...t, done: !t.done } : t)
+      const task = updated.find(t => t.id === id)
+      if (task?.done) toastSuccess(`Task done! ✓`, task.text.length > 40 ? task.text.slice(0, 40) + '…' : task.text)
+      return updated
+    })
+  }
 
   const updateTask = (id, patch) =>
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t))
@@ -559,6 +570,7 @@ export default function Tasks() {
 
   const hasGroupSort = groupBy !== 'none' || sortBy !== 'none'
   const hasMoreActive = !showCompleted || showTrash || showDetails
+  const activeFilterCount = (activeList ? 1 : 0) + (activeTag ? 1 : 0)
 
   /* ─────────────────────────────────────────────────────────── */
   return (
@@ -566,119 +578,38 @@ export default function Tasks() {
 
       {/* ── Header ── */}
       <div className="tasks-header">
-        <div>
-          <h1 className="page-title">Tasks</h1>
-          <div className="page-subtitle">{done} of {total} completed</div>
+        {/* Progress row: label left, percentage right */}
+        <div className="tasks-header-progress">
+          <div className="page-subtitle">Current Progress</div>
+          <div className="tasks-progress-percentage">{pct}%</div>
         </div>
-        <button id="tasks-new-task-btn" className="btn btn-primary" onClick={() => setAdding(true)}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          New Task
-        </button>
-      </div>
-
-      {/* ── Progress bar ── */}
-      <div className="tasks-progress-track">
-        <div className="tasks-progress-fill" style={{ width: `${pct}%` }} />
-      </div>
-
-      {/* ── Filter bar ── */}
-      <div className="tasks-filter-bar">
-        <div className="tasks-filter-section">
-          <span className="tasks-filter-section-label">Views</span>
-          <div className="tasks-filter-pills">
-            {SMART_VIEWS.map(v => (
-              <button
-                key={v.key}
-                id={`tasks-smart-${v.key}`}
-                onClick={() => setSmartView(v.key)}
-                className={`tasks-pill ${smartView === v.key ? 'tasks-pill--active' : ''}`}
-              >
-                <span className="tasks-pill-icon">{v.icon}</span>{v.label}
-              </button>
-            ))}
-          </div>
+        {/* Full-width progress bar */}
+        <div className="tasks-progress-track">
+          <div className="tasks-progress-fill" style={{ width: `${pct}%` }} />
         </div>
-
-        <div className="tasks-filter-sep" />
-
-        <div className="tasks-filter-section">
-          <span className="tasks-filter-section-label">Lists</span>
-          <div className="tasks-filter-pills">
-            {LISTS.map(list => (
-              <button
-                key={list}
-                id={`tasks-list-${list.toLowerCase()}`}
-                onClick={() => setActiveList(prev => prev === list ? null : list)}
-                className={`tasks-pill ${activeList === list ? 'tasks-pill--active' : ''}`}
-              >
-                <span className="tasks-pill-icon">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
-                  </svg>
-                </span>
-                {list}
-              </button>
-            ))}
-            <button className="tasks-pill-add" title="New list">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
+        {/* View Tabs — below the progress bar */}
+        <div className="tasks-view-tabs">
+          {SMART_VIEWS.map(v => (
+            <button
+              key={v.key}
+              id={`tasks-smart-${v.key}`}
+              onClick={() => setSmartView(v.key)}
+              className={`tasks-view-tab ${smartView === v.key ? 'tasks-view-tab--active' : ''}`}
+            >
+              <span className="tasks-view-tab-icon">{v.icon}</span>
+              {v.label}
             </button>
-          </div>
+          ))}
         </div>
-
-        <div className="tasks-filter-sep" />
-
-        <div className="tasks-filter-section">
-          <span className="tasks-filter-section-label">Tags</span>
-          <div className="tasks-filter-pills">
-            {allTags.map(tag => {
-              const tc = TAG_COLORS[tag] || TAG_COLORS.General
-              const isActive = activeTag === tag
-              return (
-                <button
-                  key={tag}
-                  id={`tasks-tag-${tag.toLowerCase()}`}
-                  onClick={() => setActiveTag(prev => prev === tag ? null : tag)}
-                  className="tasks-tag-pill"
-                  style={{
-                    background: isActive ? tc.bg : 'transparent',
-                    color: isActive ? tc.color : 'var(--color-text-muted)',
-                    border: `1px solid ${isActive ? tc.border : 'var(--color-border)'}`,
-                  }}
-                >
-                  <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: tc.color, flexShrink: 0 }} />
-                  {tag}
-                </button>
-              )
-            })}
-            <button className="tasks-pill-add" title="New tag">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {(activeList || activeTag || smartView !== 'all') && (
-          <button
-            className="tasks-filter-clear"
-            onClick={() => { setActiveList(null); setActiveTag(null); setSmartView('all') }}
-            title="Clear all filters"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        )}
       </div>
+
+
 
       {/* ── Toolbar ── */}
       <div className="tasks-toolbar">
         <div className="tasks-toolbar-info">
           <span>{filtered.length} task{filtered.length !== 1 ? 's' : ''}</span>
+          <span className="tasks-toolbar-hint">({done} of {total} completed)</span>
           {hasGroupSort && (
             <span className="tasks-toolbar-hint">
               {[groupBy !== 'none' && `grouped by ${groupBy}`, sortBy !== 'none' && `sorted by ${sortBy}`].filter(Boolean).join(' · ')}
@@ -686,7 +617,79 @@ export default function Tasks() {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+
+          {/* Filter (Lists + Tags) */}
+          <div className="tasks-dropdown-root" ref={filterDropdown.ref}>
+            <button
+              id="tasks-filter-btn"
+              className={`tasks-toolbar-btn ${activeFilterCount > 0 ? 'tasks-toolbar-btn--active' : ''}`}
+              onClick={() => { filterDropdown.setOpen(o => !o); groupDropdown.setOpen(false); moreDropdown.setOpen(false) }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46" />
+              </svg>
+              Filter
+              {activeFilterCount > 0 && (
+                <span className="tasks-filter-badge">{activeFilterCount}</span>
+              )}
+              <IconChevronDown />
+            </button>
+            {filterDropdown.open && (
+              <div className="tasks-dropdown tasks-dropdown--filter">
+                <div className="tasks-dropdown-section-label">Lists</div>
+                {LISTS.map(list => (
+                  <button
+                    key={list}
+                    id={`tasks-list-${list.toLowerCase()}`}
+                    className="tasks-dropdown-item"
+                    onClick={() => setActiveList(prev => prev === list ? null : list)}
+                  >
+                    <span className="tasks-dropdown-item-check">
+                      {activeList === list && <IconCheck />}
+                    </span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ opacity: 0.5 }}>
+                      <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                    </svg>
+                    {list}
+                  </button>
+                ))}
+                <div className="tasks-dropdown-divider" />
+                <div className="tasks-dropdown-section-label">Tags</div>
+                {allTags.map(tag => {
+                  const tc = TAG_COLORS[tag] || TAG_COLORS.General
+                  const isActive = activeTag === tag
+                  return (
+                    <button
+                      key={tag}
+                      id={`tasks-tag-${tag.toLowerCase()}`}
+                      className="tasks-dropdown-item"
+                      onClick={() => setActiveTag(prev => prev === tag ? null : tag)}
+                    >
+                      <span className="tasks-dropdown-item-check">
+                        {isActive && <IconCheck />}
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: tc.color, flexShrink: 0, display: 'inline-block' }} />
+                        <span style={{ color: isActive ? tc.color : 'inherit' }}>{tag}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+                {activeFilterCount > 0 && (
+                  <>
+                    <div className="tasks-dropdown-divider" />
+                    <button
+                      className="tasks-dropdown-item tasks-dropdown-item--danger"
+                      onClick={() => { setActiveList(null); setActiveTag(null) }}
+                    >
+                      <span className="tasks-dropdown-item-check" /> Clear filters
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
           {/* Group & Sorting */}
           <div className="tasks-dropdown-root" ref={groupDropdown.ref}>
             <button

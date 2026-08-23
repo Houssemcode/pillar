@@ -72,105 +72,97 @@ export default function Today() {
         }} />
       </div>
 
-      {/* Module summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-        {MODULE_SUMMARY.map(item => {
-          const theme = getModuleTheme(item.key)
-          return (
-            <div key={item.key} className="card" style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 10,
-                background: `${theme.color}18`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 16, color: theme.color, flexShrink: 0,
-                border: `1px solid ${theme.color}30`,
-              }}>
-                {item.icon}
-              </div>
-              <div>
-                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 500 }}>{item.label}</div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: theme.color }}>{item.value}</div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+      {/* Two-column layout: summary + timeline */}
+      <div className="today-layout">
 
-      {/* Timeline */}
-      <div>
-        <div className="section-label">Daily Timeline</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {timeline.map((item, idx) => {
-            const theme = getModuleTheme(item.module)
-            const isNow = idx === timeline.findIndex(t => !t.done)
+        {/* Module summary cards — horizontal scroll on mobile */}
+        <div className="today-summary-strip">
+          {MODULE_SUMMARY.map(item => {
+            const theme = getModuleTheme(item.key)
             return (
-              <div
-                key={idx}
-                className="timeline-item"
-                onClick={() => toggleItem(idx)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  padding: '12px 16px',
-                  borderRadius: 10,
-                  cursor: 'pointer',
-                  background: isNow
-                    ? `${theme.color}10`
-                    : item.done
-                    ? 'transparent'
-                    : 'transparent',
-                  border: isNow
-                    ? `1px solid ${theme.color}30`
-                    : '1px solid transparent',
-                  opacity: item.done ? 0.5 : 1,
-                  transition: 'all 200ms ease',
-                }}
-              >
-                {/* Time */}
+              <div key={item.key} className="today-summary-card glass-card" style={{ padding: '14px 16px' }}>
                 <div style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: 'var(--color-text-muted)',
-                  width: 42,
-                  flexShrink: 0,
-                  fontVariantNumeric: 'tabular-nums',
-                }}>
-                  {item.time}
-                </div>
-
-                {/* Timeline dot + line */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-                  <ColorDot moduleKey={item.module} size={9} />
-                </div>
-
-                {/* Label */}
-                <div style={{
-                  fontSize: 14,
-                  color: item.done ? 'var(--color-text-muted)' : 'var(--color-text)',
-                  textDecoration: item.done ? 'line-through' : 'none',
-                  flex: 1,
-                  fontWeight: isNow ? 500 : 400,
-                }}>
-                  {item.label}
-                </div>
-
-                {/* Module badge */}
-                <span style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  color: theme.color,
-                  background: `${theme.color}15`,
+                  width: 32, height: 32, borderRadius: 10,
+                  background: `${theme.color}18`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 14, color: theme.color, flexShrink: 0,
                   border: `1px solid ${theme.color}30`,
-                  borderRadius: 100,
-                  padding: '2px 8px',
-                  flexShrink: 0,
                 }}>
-                  {item.module}
-                </span>
+                  {item.icon}
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 500 }}>{item.label}</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: theme.color }}>{item.value}</div>
+                </div>
               </div>
             )
           })}
+        </div>
+
+        {/* Timeline */}
+        <div>
+          <div className="section-label">Daily Timeline</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {timeline.map((item, idx) => {
+              const theme = getModuleTheme(item.module)
+              const isNow = idx === timeline.findIndex(t => !t.done)
+              return (
+                <div
+                  key={idx}
+                  onClick={() => toggleItem(idx)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    padding: '12px 16px',
+                    borderRadius: 10,
+                    cursor: 'pointer',
+                    background: isNow ? `${theme.color}10` : 'transparent',
+                    border: isNow ? `1px solid ${theme.color}30` : '1px solid transparent',
+                    opacity: item.done ? 0.5 : 1,
+                    transition: 'all 200ms ease',
+                  }}
+                >
+                  {/* Time */}
+                  <div style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: 'var(--color-text-muted)',
+                    width: 42,
+                    flexShrink: 0,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {item.time}
+                  </div>
+
+                  {/* Timeline dot */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                    <ColorDot moduleKey={item.module} size={9} />
+                  </div>
+
+                  {/* Label */}
+                  <div style={{
+                    fontSize: 14,
+                    color: item.done ? 'var(--color-text-muted)' : 'var(--color-text)',
+                    textDecoration: item.done ? 'line-through' : 'none',
+                    flex: 1,
+                    fontWeight: isNow ? 500 : 400,
+                  }}>
+                    {item.label}
+                  </div>
+
+                  {/* Module badge */}
+                  <span className="today-module-badge" style={{
+                    color: theme.color,
+                    background: `${theme.color}15`,
+                    border: `1px solid ${theme.color}30`,
+                  }}>
+                    {item.module}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
