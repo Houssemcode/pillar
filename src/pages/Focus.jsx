@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ProgressRing from '../components/ui/ProgressRing'
-import { useLocalStorage } from '../hooks/useLocalStorage'
 import { useToast } from '../context/ToastContext'
+import { focusApi } from '../api/focus'
 
 /* ─── Config ──────────────────────────────────────────────── */
 const MODES = [
@@ -12,9 +12,8 @@ const MODES = [
 
 const DAILY_GOAL = 8  // sessions target per day
 
-// Static sample for weekly chart — last 7 days
+// Week day labels
 const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-const SAMPLE_WEEK = [4, 6, 3, 7, 5, 2, 1] // sessions per day
 
 /* ─── Helpers ─────────────────────────────────────────────── */
 const PRIMARY = 'var(--color-primary)'
@@ -77,12 +76,11 @@ function SetPips({ pomodoros }) {
 }
 
 /* ─── Weekly Bar Chart ───────────────────────────────────── */
-function WeeklyChart({ sessions }) {
+function WeeklyChart({ weekData }) {
   const todayIdx = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1
-  // Merge live session count for today with sample data
   const bars = WEEK_DAYS.map((d, i) => ({
     day: d,
-    count: i === todayIdx ? sessions.length : SAMPLE_WEEK[i],
+    count: weekData[i] ?? 0,
     isToday: i === todayIdx,
   }))
   const max = Math.max(...bars.map(b => b.count), 1)
@@ -128,10 +126,30 @@ export default function Focus() {
   const [mode, setMode] = useState(0)
   const [secondsLeft, setSecondsLeft] = useState(MODES[0].duration)
   const [running, setRunning] = useState(false)
-  const [pomodoros, setPomodoros] = useLocalStorage('pillar_pomodoros_today', 0)
-  const [sessions, setSessions] = useLocalStorage('pillar_sessions_today', [])
+  const [pomodoros, setPomodoros] = useState(0)
+  const [sessions, setSessions] = useState([])
+  const [weekData, setWeekData] = useState(Array(7).fill(0))
   const [task, setTask] = useState('')
+  const startedAtRef = useRef(null)
   const intervalRef = useRef(null)
+
+  /* ── Bootstrap: load today's sessions from API ── */
+  useEffect(() => {
+    focusApi.today()
+      .then(data => {
+        setPomodoros(data.count)
+        setSessions(data.sessions.map(s => ({
+          label: s.label,
+          duration: `${s.duration_minutes}m`,
+          time: s.completed_at ? new Date(s.completed_at).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false }) : '',
+          isBreak: s.mode !== 'pomodoro',
+        })))
+      })
+      .catch(() => {}) // silently ignore if offline
+    focusApi.weekly()
+      .then(data => setWeekData(data.map(d => d.count)))
+      .catch(() => {})
+  }, [])
 
   const totalSeconds = MODES[mode].duration
   const progress = ((totalSeconds - secondsLeft) / totalSeconds) * 100
@@ -141,6 +159,7 @@ export default function Focus() {
   /* ── Timer tick ── */
   useEffect(() => {
     if (running) {
+      if (!startedAtRef.current) startedAtRef.current = new Date().toISOString()
       intervalRef.current = setInterval(() => {
         setSecondsLeft(prev => {
           if (prev <= 1) {
@@ -150,12 +169,21 @@ export default function Focus() {
               setPomodoros(newCount)
               const now = new Date()
               const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`
-              setSessions(p => [{
+              const sessionEntry = {
                 label: task || 'Focus Session',
                 duration: `${MODES[mode].duration / 60}m`,
                 time: timeStr,
                 isBreak: false,
-              }, ...p].slice(0, 20))
+              }
+              setSessions(p => [sessionEntry, ...p].slice(0, 20))
+              // Log to backend (fire-and-forget)
+              focusApi.logSession({
+                label: task || 'Focus Session',
+                duration_minutes: MODES[mode].duration / 60,
+                mode: 'pomodoro',
+                started_at: startedAtRef.current || now.toISOString(),
+              }).catch(() => {})
+              startedAtRef.current = null
               if (newCount % 4 === 0) {
                 toastStreak('4 sessions done! 🎉', 'Take a long break — you earned it.')
               } else {
@@ -303,7 +331,7 @@ export default function Focus() {
           {/* Weekly chart */}
           <div className="focus-analytics-card">
             <div className="focus-analytics-card-title">Mini Weekly Focus Breakdown</div>
-            <WeeklyChart sessions={sessions} />
+            <WeeklyChart weekData={weekData} />
           </div>
 
         </div>

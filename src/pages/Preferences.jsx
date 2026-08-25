@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
+
 
 export default function Preferences() {
   const { gender, isExcused, setIsExcused } = useUser();
+  const { user, logout } = useAuth();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
 
   const handleToggleExcuse = () => {
     if (isExcused) {
@@ -60,12 +64,38 @@ export default function Preferences() {
         </div>
       )}
 
+      <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h3 style={{ margin: '0 0 0.25rem 0', color: 'var(--color-text)' }}>Account</h3>
+          <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
+            Signed in as <strong style={{ color: 'var(--color-text)' }}>{user?.username}</strong>
+          </p>
+        </div>
+        <button
+          onClick={logout}
+          style={{
+            padding: '8px 18px',
+            background: 'rgba(244,63,94,0.1)',
+            border: '1px solid rgba(244,63,94,0.3)',
+            borderRadius: '8px',
+            color: '#F43F5E',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 150ms ease',
+          }}
+        >
+          Sign Out
+        </button>
+      </div>
+
       <div className="glass-card" style={{ padding: '1.5rem' }}>
         <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--color-text)' }}>إعدادات الحساب</h3>
         <p style={{ margin: 0, color: 'var(--color-text-muted)' }}>
           الجنس الحالي: <strong>{gender === 'female' ? 'أنثى' : 'ذكر'}</strong>
         </p>
       </div>
+
 
       {showConfirmModal && (
         <div className="modal-overlay" style={{
