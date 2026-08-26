@@ -1,0 +1,11 @@
+.pythonlibs/
+.venv/
+__pycache__/
+*.py[cod]
+backend/db.sqlite3
+backend/.pytest_cache/
+.env
+.env.*
+!.env.example
+node_modules/.vite/
+dist/

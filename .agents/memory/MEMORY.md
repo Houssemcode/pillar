@@ -1,0 +1,1 @@
+- [Imported Node dependencies](imported-node-dependencies.md) — zip imports may preserve copied npm bin launchers; verify executable links before diagnosing package code.

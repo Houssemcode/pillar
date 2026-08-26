@@ -4,7 +4,10 @@
  */
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// In Replit development, Vite proxies /api to the local Django service.
+// A configured remote URL is still respected for deployed environments.
+const configuredBaseUrl = import.meta.env.VITE_API_URL
+const BASE_URL = configuredBaseUrl?.includes('localhost') ? '' : (configuredBaseUrl || '')
 
 const client = axios.create({
   baseURL: BASE_URL,
