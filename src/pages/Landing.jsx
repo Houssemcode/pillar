@@ -34,7 +34,7 @@ export default function Landing() {
   const { colorTheme, toggleTheme } = useUser()
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-white transition-colors duration-200 flex flex-col selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen w-full bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-white transition-colors duration-200 flex flex-col selection:bg-emerald-500 selection:text-white overflow-x-hidden">
       {/* ─── Top Navbar ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 dark:bg-[#0a0a0a]/80 border-b border-gray-200/80 dark:border-zinc-800/80 transition-colors">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
