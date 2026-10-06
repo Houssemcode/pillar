@@ -2,12 +2,13 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useUser } from '../context/UserContext'
 
-export default function Landing() {
+export default function Landing({ forceShow = false }) {
   const { user } = useAuth()
   const { colorTheme, toggleTheme } = useUser()
 
-  // Smoothly redirect authenticated users straight to the dashboard
-  if (user) {
+  // Smoothly redirect authenticated users straight to the dashboard unless previewing
+  const isPreview = forceShow || (typeof window !== 'undefined' && window.location.search.includes('preview'))
+  if (user && !isPreview) {
     return <Navigate to="/today" replace />
   }
 
@@ -573,50 +574,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── Meet the Developer Section ───────────────────────────── */}
-      <section id="developer" className="w-full border-t border-gray-200 dark:border-zinc-800/50 bg-gray-50/50 dark:bg-[#0a0a0a]/50 py-20 relative z-10 transition-colors">
-        <div className="max-w-4xl mx-auto px-4 text-center flex flex-col items-center">
-          <p className="text-sm font-semibold tracking-wider text-emerald-600 uppercase mb-4">
-            Designed &amp; Engineered By
-          </p>
-          <h2 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-6">
-            Houssem Eddine Saifi
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-lg mx-auto">
-            Full-Stack Developer building mindful, high-performance applications.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            {/* GitHub Button */}
-            <a
-              href="https://github.com/Houssemcode"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gray-900 text-white dark:bg-white dark:text-gray-900 font-medium hover:opacity-90 transition-opacity shadow-sm"
-            >
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
-                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
-              </svg>
-              <span>GitHub</span>
-            </a>
-
-            {/* Portfolio Button */}
-            <a
-              href="https://houssemcode.github.io/houssem.me/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-[#121212] text-gray-900 dark:text-white font-medium hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors shadow-sm"
-            >
-              <svg className="w-5 h-5 text-current" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-              <span>Portfolio</span>
-            </a>
-          </div>
-        </div>
-      </section>
-
       {/* ─── Bottom CTA Banner ─────────────────────────────────────── */}
       <section className="relative z-10 py-16 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
         <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 text-white shadow-2xl relative overflow-hidden">
@@ -678,6 +635,41 @@ export default function Landing() {
           <p>Designed with intentionality, minimalism, and spiritual peace.</p>
         </div>
       </footer>
+
+      {/* ─── Meet the Developer Section ───────────────────────────── */}
+      <section id="developer" className="w-full border-t border-gray-200 dark:border-zinc-800/50 bg-gray-50/50 dark:bg-[#0a0a0a]/50 py-24">
+        <div className="max-w-4xl mx-auto px-4 text-center flex flex-col items-center">
+          <span className="text-sm font-semibold tracking-wider text-emerald-600 uppercase mb-4">
+            Designed &amp; Engineered By
+          </span>
+          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tight">
+            Houssem Eddine Saifi
+          </h2>
+          <p className="text-lg text-gray-500 dark:text-gray-400 mb-10 max-w-xl mx-auto leading-relaxed">
+            Full-Stack Developer building mindful, high-performance applications bridging the gap between productivity and intentional living.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <a
+              href="https://github.com/Houssemcode"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-gray-900 text-white dark:bg-white dark:text-gray-900 font-semibold hover:-translate-y-1 transition-all shadow-lg hover:shadow-xl"
+            >
+              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" aria-hidden="true"><path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"></path></svg>
+              GitHub Profile
+            </a>
+            <a
+              href="https://houssemcode.github.io/houssem.me/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-8 py-4 rounded-2xl border-2 border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#121212] text-gray-900 dark:text-white font-semibold hover:border-emerald-500 dark:hover:border-emerald-500 hover:-translate-y-1 transition-all shadow-sm"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+              Portfolio Site
+            </a>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

@@ -84,6 +84,7 @@ function AppContent() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Landing />} />
+        <Route path="/landing" element={<Landing forceShow={true} />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
