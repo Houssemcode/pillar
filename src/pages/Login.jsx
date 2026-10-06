@@ -53,11 +53,6 @@ export default function Login() {
     }
   }
 
-  const fillDemo = () => {
-    setUsername('demo')
-    setPassword('pillar123')
-    setError('')
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-[#0a0a0a] relative transition-colors duration-200">
@@ -200,17 +195,6 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Demo Account Hint */}
-        <div className="pt-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-          <span>Demo account:</span>
-          <button
-            type="button"
-            onClick={fillDemo}
-            className="text-sm text-emerald-600 hover:text-emerald-500 font-medium transition-colors"
-          >
-            demo / pillar123
-          </button>
-        </div>
 
         {/* Link to Register */}
         <p className="text-center text-sm text-gray-500 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-zinc-800">
