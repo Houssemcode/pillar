@@ -42,6 +42,20 @@ export const MODULE_THEMES = {
     colorMuted: 'rgba(244, 63, 94, 0.25)',
     colorGlow: 'rgba(244, 63, 94, 0.15)',
   },
+  trash: {
+    name: 'Trash',
+    color: '#64748B',
+    colorSubtle: 'rgba(100, 116, 139, 0.08)',
+    colorMuted: 'rgba(100, 116, 139, 0.25)',
+    colorGlow: 'rgba(100, 116, 139, 0.15)',
+  },
+  preferences: {
+    name: 'Preferences',
+    color: '#8B5CF6',
+    colorSubtle: 'rgba(139, 92, 246, 0.08)',
+    colorMuted: 'rgba(139, 92, 246, 0.25)',
+    colorGlow: 'rgba(139, 92, 246, 0.15)',
+  },
 }
 
 // Route → module key mapping
@@ -52,6 +66,12 @@ export const ROUTE_TO_MODULE = {
   '/calendar': 'calendar',
   '/faith': 'faith',
   '/focus': 'focus',
+  '/settings': 'preferences',
+  '/profile': 'preferences',
+  '/trash': 'trash',
+  '/adhkar': 'faith',
+  '/faith/adhkar': 'faith',
+  '/hadiths': 'faith',
 }
 
 // Apply a module theme to CSS variables on the document root

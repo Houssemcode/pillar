@@ -1,0 +1,103 @@
+/* ═══════════════════════════════════════════════════════════
+   PageLayout.css — Standardized 2-Column Application Layout
+   ═══════════════════════════════════════════════════════════ */
+
+.page-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  gap: 20px;
+}
+
+/* Header slot above the two-column split */
+.page-layout__header {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+/* Two-column body */
+.page-layout__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--page-sidebar-width, 340px);
+  gap: 24px;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  align-items: start;
+}
+
+/* Single column when sidebar is omitted */
+.page-layout__body--no-sidebar {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* Main primary content column */
+.page-layout__main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Context / Stats sidebar */
+.page-layout__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  min-height: 0;
+  position: sticky;
+  top: 0;
+}
+
+/* ── Container Override for Pages with PageLayout ── */
+.page.page--layout,
+.page:has(.page-layout) {
+  padding-left: 28px !important;
+  padding-right: 28px !important;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Responsive Stacking (Mobile & Tablets) ── */
+@media (max-width: 1024px) {
+  .page-layout__body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .page-layout__sidebar {
+    position: static;
+  }
+
+  .page.page--layout,
+  .page:has(.page-layout) {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+}
+
+/* ── Focus Page Layout Adjustments ── */
+.focus-page .page-layout {
+  padding: 20px 28px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1024px) {
+  .focus-page .page-layout {
+    padding: 16px 0;
+  }
+}
+
+.focus-page--fullscreen .page-layout {
+  padding: 0 !important;
+}
+
+.focus-page--fullscreen .page-layout__header {
+  padding: 20px 32px 10px;
+}

@@ -1,0 +1,3 @@
+"""
+Faith module app package.
+"""

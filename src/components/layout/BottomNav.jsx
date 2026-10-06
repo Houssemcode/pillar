@@ -1,10 +1,11 @@
 import { NavLink, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { MODULE_THEMES } from '../../theme/moduleThemes'
 
 const NAV_ITEMS = [
   {
     to: '/',
-    label: 'Today',
+    labelKey: 'nav.today',
     exact: true,
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -15,7 +16,7 @@ const NAV_ITEMS = [
   },
   {
     to: '/tasks',
-    label: 'Tasks',
+    labelKey: 'nav.tasks',
     moduleKey: 'tasks',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -26,7 +27,7 @@ const NAV_ITEMS = [
   },
   {
     to: '/habits',
-    label: 'Habits',
+    labelKey: 'nav.habits',
     moduleKey: 'habits',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -36,7 +37,7 @@ const NAV_ITEMS = [
   },
   {
     to: '/calendar',
-    label: 'Calendar',
+    labelKey: 'nav.calendar',
     moduleKey: 'calendar',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -49,7 +50,7 @@ const NAV_ITEMS = [
   },
   {
     to: '/faith',
-    label: 'Faith',
+    labelKey: 'nav.faith',
     moduleKey: 'faith',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -59,7 +60,7 @@ const NAV_ITEMS = [
   },
   {
     to: '/focus',
-    label: 'Focus',
+    labelKey: 'nav.focus',
     moduleKey: 'focus',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -72,6 +73,7 @@ const NAV_ITEMS = [
 ]
 
 export default function BottomNav() {
+  const { t } = useTranslation()
   const location = useLocation()
 
   const isActive = (item) => {
@@ -85,12 +87,14 @@ export default function BottomNav() {
         const active = isActive(item)
         const moduleTheme = item.moduleKey ? MODULE_THEMES[item.moduleKey] : null
         const activeColor = moduleTheme ? moduleTheme.color : 'var(--color-primary)'
+        const label = t(item.labelKey)
         return (
           <NavLink
             key={item.to}
             to={item.to}
             className={`bottom-nav-item${active ? ' active' : ''}`}
             style={active ? { color: activeColor } : {}}
+            title={label}
           >
             <span
               className="bottom-nav-icon"
@@ -98,7 +102,7 @@ export default function BottomNav() {
             >
               {item.icon}
             </span>
-            <span className="bottom-nav-label">{item.label}</span>
+            <span className="bottom-nav-label">{label}</span>
           </NavLink>
         )
       })}

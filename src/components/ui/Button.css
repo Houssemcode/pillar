@@ -1,0 +1,228 @@
+/* ============================================================
+   Button.css — Unified Button System for Pillar
+   All values consume global CSS variables from index.css so
+   the Chameleon dynamic theme propagates automatically.
+   ============================================================ */
+
+/* ── Base ──────────────────────────────────────────────────── */
+.pil-btn {
+  /* Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  /* Typography */
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  /* Shape */
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  /* Interaction */
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  /* Chameleon-aware transitions */
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    filter var(--transition-fast),
+    var(--transition-theme);
+  /* Prevent icon distortion */
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+/* ── Icon Side ─────────────────────────────────────────────── */
+.pil-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Sizes ─────────────────────────────────────────────────── */
+.pil-btn--sm {
+  padding: 6px 14px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  gap: 6px;
+}
+.pil-btn--sm .pil-btn__icon {
+  width: 14px;
+  height: 14px;
+}
+
+.pil-btn--md {
+  padding: 10px 20px;
+}
+.pil-btn--md .pil-btn__icon {
+  width: 16px;
+  height: 16px;
+}
+
+.pil-btn--lg {
+  padding: 13px 28px;
+  font-size: 15px;
+  border-radius: var(--radius-lg);
+}
+.pil-btn--lg .pil-btn__icon {
+  width: 18px;
+  height: 18px;
+}
+
+.pil-btn--full {
+  width: 100%;
+  padding: 12px 20px;
+}
+
+/* ── Variants ──────────────────────────────────────────────── */
+
+/* Primary — uses module accent colour */
+.pil-btn--primary {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 12px var(--color-primary-glow);
+}
+.pil-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.12);
+  box-shadow: 0 6px 20px var(--color-primary-glow);
+}
+.pil-btn--primary:active:not(:disabled) {
+  filter: brightness(0.96);
+  box-shadow: none;
+}
+
+/* Secondary — surface + subtle border */
+.pil-btn--secondary {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+.pil-btn--secondary:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  border-color: var(--color-primary-muted);
+  color: var(--color-text);
+}
+
+/* Ghost — transparent, subtle */
+.pil-btn--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+.pil-btn--ghost:hover:not(:disabled) {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+/* Danger — destructive red */
+.pil-btn--danger {
+  background: rgba(244, 63, 94, 0.12);
+  color: #F43F5E;
+  border-color: rgba(244, 63, 94, 0.25);
+}
+.pil-btn--danger:hover:not(:disabled) {
+  background: rgba(244, 63, 94, 0.2);
+  border-color: rgba(244, 63, 94, 0.4);
+}
+.pil-btn--danger:active:not(:disabled) {
+  background: rgba(244, 63, 94, 0.28);
+}
+
+/* ── Loading State ─────────────────────────────────────────── */
+.pil-btn--loading {
+  /* Content is visually hidden but layout preserved */
+  pointer-events: none;
+}
+
+.pil-btn__spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: pil-spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+
+.pil-btn--lg .pil-btn__spinner {
+  width: 16px;
+  height: 16px;
+}
+
+@keyframes pil-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Disabled State ────────────────────────────────────────── */
+.pil-btn:disabled,
+.pil-btn--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Focus Ring (accessibility) ────────────────────────────── */
+.pil-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+/* ── Icon-only variant (used by IconButton) ────────────────── */
+.pil-btn--icon-only {
+  /* Override horizontal padding to produce a square */
+  padding: 0;
+  /* Minimum 44×44 touch target per WCAG */
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--radius-md);
+}
+
+/* Shrink for sm size while still hitting the touch target */
+.pil-btn--icon-only.pil-btn--sm {
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: var(--radius-sm);
+}
+
+.pil-btn--icon-only.pil-btn--lg {
+  min-width: 52px;
+  min-height: 52px;
+  border-radius: var(--radius-lg);
+}
+
+/* Ghost icon-only: no border by default, faint on hover */
+.pil-btn--icon-only.pil-btn--ghost {
+  border-color: transparent;
+}
+.pil-btn--icon-only.pil-btn--ghost:hover:not(:disabled) {
+  background: var(--color-surface-3);
+  border-color: transparent;
+}
+
+/* ── Responsive — comfortable padding on small screens ─────── */
+@media (max-width: 480px) {
+  .pil-btn {
+    min-height: 44px; /* Mobile touch target */
+  }
+  .pil-btn--icon-only.pil-btn--sm {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .pil-btn--md {
+    padding: 9px 16px;
+  }
+  .pil-btn--lg {
+    padding: 12px 22px;
+  }
+}
+

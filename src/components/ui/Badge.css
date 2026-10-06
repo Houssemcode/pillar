@@ -1,0 +1,116 @@
+/* ============================================================
+   Badge.css — Pillar Badge System
+   Namespace: pil-badge  (never collides with legacy .badge)
+
+   Design rule: dark bg with a faint tint + vivid matching text
+   gives badges enough contrast on both light and dark surfaces
+   without being visually aggressive.
+   ============================================================ */
+
+/* ── Base ──────────────────────────────────────────────────── */
+.pil-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 100px;       /* pill shape */
+  border: 1px solid transparent;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    var(--transition-theme);
+  vertical-align: middle;     /* sits inline with text naturally */
+  flex-shrink: 0;
+}
+
+.pil-badge__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── Sizes ─────────────────────────────────────────────────── */
+.pil-badge--sm {
+  padding: 2px 7px;
+  font-size: 10px;
+}
+.pil-badge--sm .pil-badge__icon {
+  width: 10px;
+  height: 10px;
+}
+
+.pil-badge--md {
+  padding: 3px 10px;
+  font-size: 11px;
+}
+.pil-badge--md .pil-badge__icon {
+  width: 12px;
+  height: 12px;
+}
+
+/* ── Variants ──────────────────────────────────────────────── */
+
+/* default — neutral zinc */
+.pil-badge--default {
+  background: rgba(39, 39, 42, 0.7);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+
+[data-theme="light"] .pil-badge--default {
+  background: rgba(228, 228, 231, 0.8);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+
+/* primary — module accent colour (shifts with Chameleon) */
+.pil-badge--primary {
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
+  border-color: var(--color-primary-muted);
+}
+
+/* success — emerald */
+.pil-badge--success {
+  background: rgba(16, 185, 129, 0.10);
+  color: #10B981;
+  border-color: rgba(16, 185, 129, 0.22);
+}
+
+[data-theme="light"] .pil-badge--success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+/* warning — amber */
+.pil-badge--warning {
+  background: rgba(245, 158, 11, 0.10);
+  color: #F59E0B;
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+[data-theme="light"] .pil-badge--warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #D97706;
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+/* danger — rose/red */
+.pil-badge--danger {
+  background: rgba(244, 63, 94, 0.10);
+  color: #F43F5E;
+  border-color: rgba(244, 63, 94, 0.22);
+}
+
+[data-theme="light"] .pil-badge--danger {
+  background: rgba(244, 63, 94, 0.12);
+  color: #E11D48;
+  border-color: rgba(244, 63, 94, 0.28);
+}

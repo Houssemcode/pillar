@@ -1,0 +1,406 @@
+/* ===================================================
+   FAITH PAGE STYLES — Dynamic Light & Dark Mode
+   =================================================== */
+
+/* Page Background */
+.faith-page {
+  background-color: #f9fafb !important;
+  min-height: 100%;
+}
+
+.dark .faith-page,
+[data-theme="dark"] .faith-page {
+  background-color: #09090b !important;
+}
+
+/* ── 1. Baseline Card Container (.bg-white, .border, .border-gray-200, .rounded-2xl, .p-6, .shadow-sm) ── */
+.faith-widget-card,
+.prayer-schedule-card,
+.today-deeds-card,
+.hadith-card {
+  box-sizing: border-box !important;
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  padding: 24px !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.06) !important;
+  transition: all 180ms ease !important;
+}
+
+.dark .faith-widget-card,
+.dark .prayer-schedule-card,
+.dark .today-deeds-card,
+.dark .hadith-card,
+[data-theme="dark"] .faith-widget-card,
+[data-theme="dark"] .prayer-schedule-card,
+[data-theme="dark"] .today-deeds-card,
+[data-theme="dark"] .hadith-card {
+  background-color: #121212 !important;
+  border-color: #27272a !important;
+  box-shadow: none !important;
+}
+
+/* ── 2. Utility Class Backings for Tailwind in Faith ── */
+.bg-white {
+  background-color: #ffffff !important;
+}
+
+.bg-gray-50 {
+  background-color: #f9fafb !important;
+}
+
+.bg-gray-100 {
+  background-color: #f3f4f6 !important;
+}
+
+.bg-emerald-50 {
+  background-color: #ecfdf5 !important;
+}
+
+.border {
+  border-width: 1px !important;
+  border-style: solid !important;
+}
+
+.border-b {
+  border-bottom-width: 1px !important;
+  border-bottom-style: solid !important;
+}
+
+.border-t {
+  border-top-width: 1px !important;
+  border-top-style: solid !important;
+}
+
+.border-gray-100 {
+  border-color: #f3f4f6 !important;
+}
+
+.border-gray-200 {
+  border-color: #e5e7eb !important;
+}
+
+.border-gray-300 {
+  border-color: #d1d5db !important;
+}
+
+.border-emerald-200 {
+  border-color: #a7f3d0 !important;
+}
+
+.border-emerald-500\/50 {
+  border-color: rgba(16, 185, 129, 0.5) !important;
+}
+
+.rounded-2xl {
+  border-radius: 16px !important;
+}
+
+.rounded-xl {
+  border-radius: 12px !important;
+}
+
+.rounded-lg {
+  border-radius: 8px !important;
+}
+
+.rounded-full {
+  border-radius: 9999px !important;
+}
+
+.p-6 {
+  padding: 24px !important;
+}
+
+.p-3 {
+  padding: 12px !important;
+}
+
+.p-3\.5 {
+  padding: 14px !important;
+}
+
+.p-2\.5 {
+  padding: 10px !important;
+}
+
+.py-2\.5 {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+
+.px-2\.5 {
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+.py-1 {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+.gap-1\.5 {
+  gap: 6px !important;
+}
+
+.gap-2\.5 {
+  gap: 10px !important;
+}
+
+.gap-3 {
+  gap: 12px !important;
+}
+
+.gap-4 {
+  gap: 16px !important;
+}
+
+.gap-6 {
+  gap: 24px !important;
+}
+
+.gap-8 {
+  gap: 32px !important;
+}
+
+@media (min-width: 1024px) {
+  .lg\:gap-8 {
+    gap: 32px !important;
+  }
+}
+
+.h-1\.5 {
+  height: 6px !important;
+}
+
+.w-full {
+  width: 100% !important;
+}
+
+.min-w-\[120px\] {
+  min-width: 120px !important;
+}
+
+.min-h-\[220px\] {
+  min-height: 220px !important;
+}
+
+.shadow-sm {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ── 3. Dark Mode Overrides ── */
+.dark .dark\:bg-\[\#121212\],
+[data-theme="dark"] .dark\:bg-\[\#121212\] {
+  background-color: #121212 !important;
+}
+
+.dark .dark\:bg-zinc-900,
+[data-theme="dark"] .dark\:bg-zinc-900 {
+  background-color: #18181b !important;
+}
+
+.dark .dark\:bg-zinc-900\/40,
+[data-theme="dark"] .dark\:bg-zinc-900\/40 {
+  background-color: rgba(24, 24, 27, 0.4) !important;
+}
+
+.dark .dark\:bg-zinc-900\/60,
+[data-theme="dark"] .dark\:bg-zinc-900\/60 {
+  background-color: rgba(24, 24, 27, 0.6) !important;
+}
+
+.dark .dark\:bg-zinc-800,
+[data-theme="dark"] .dark\:bg-zinc-800 {
+  background-color: #27272a !important;
+}
+
+.dark .dark\:bg-emerald-500\/10,
+[data-theme="dark"] .dark\:bg-emerald-500\/10 {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+.dark .dark\:border-zinc-800,
+[data-theme="dark"] .dark\:border-zinc-800 {
+  border-color: #27272a !important;
+}
+
+.dark .dark\:border-zinc-800\/50,
+[data-theme="dark"] .dark\:border-zinc-800\/50 {
+  border-color: rgba(39, 39, 42, 0.5) !important;
+}
+
+.dark .dark\:border-zinc-800\/60,
+[data-theme="dark"] .dark\:border-zinc-800\/60 {
+  border-color: rgba(39, 39, 42, 0.6) !important;
+}
+
+.dark .dark\:border-zinc-700,
+[data-theme="dark"] .dark\:border-zinc-700 {
+  border-color: #3f3f46 !important;
+}
+
+.dark .dark\:border-emerald-500\/30,
+[data-theme="dark"] .dark\:border-emerald-500\/30 {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.dark .dark\:border-emerald-500\/50,
+[data-theme="dark"] .dark\:border-emerald-500\/50 {
+  border-color: rgba(16, 185, 129, 0.5) !important;
+}
+
+.dark .dark\:shadow-none,
+[data-theme="dark"] .dark\:shadow-none {
+  box-shadow: none !important;
+}
+
+/* ── 4. Hover States & Contrast ── */
+.hover\:bg-gray-50:hover {
+  background-color: #f9fafb !important;
+}
+
+.dark .dark\:hover\:bg-zinc-800\/50:hover,
+[data-theme="dark"] .dark\:hover\:bg-zinc-800\/50:hover {
+  background-color: rgba(39, 39, 42, 0.5) !important;
+}
+
+.dark .dark\:hover\:border-zinc-700:hover,
+[data-theme="dark"] .dark\:hover\:border-zinc-700:hover {
+  border-color: #3f3f46 !important;
+}
+
+/* Deed row dedicated hover */
+.faith-deed-row {
+  transition: all 180ms ease !important;
+  box-sizing: border-box !important;
+}
+
+.faith-deed-row:hover {
+  background-color: #f9fafb !important;
+}
+
+.dark .faith-deed-row:hover,
+[data-theme="dark"] .faith-deed-row:hover {
+  background-color: rgba(39, 39, 42, 0.5) !important;
+}
+
+/* ── 5. Text Contrast ── */
+.text-gray-900 {
+  color: #111827 !important;
+}
+
+.text-gray-700 {
+  color: #374151 !important;
+}
+
+.text-gray-600 {
+  color: #4b5563 !important;
+}
+
+.text-gray-500 {
+  color: #6b7280 !important;
+}
+
+.text-gray-400 {
+  color: #9ca3af !important;
+}
+
+.text-gray-300 {
+  color: #d1d5db !important;
+}
+
+.text-emerald-600 {
+  color: #059669 !important;
+}
+
+.dark .dark\:text-white,
+[data-theme="dark"] .dark\:text-white {
+  color: #ffffff !important;
+}
+
+.dark .dark\:text-gray-100,
+[data-theme="dark"] .dark\:text-gray-100 {
+  color: #f3f4f6 !important;
+}
+
+.dark .dark\:text-gray-200,
+[data-theme="dark"] .dark\:text-gray-200 {
+  color: #e5e7eb !important;
+}
+
+.dark .dark\:text-gray-300,
+[data-theme="dark"] .dark\:text-gray-300 {
+  color: #d1d5db !important;
+}
+
+.dark .dark\:text-gray-400,
+[data-theme="dark"] .dark\:text-gray-400 {
+  color: #9ca3af !important;
+}
+
+.dark .dark\:text-zinc-500,
+[data-theme="dark"] .dark\:text-zinc-500 {
+  color: #71717a !important;
+}
+
+.dark .dark\:text-zinc-700,
+[data-theme="dark"] .dark\:text-zinc-700 {
+  color: #3f3f46 !important;
+}
+
+.dark .dark\:text-emerald-400,
+[data-theme="dark"] .dark\:text-emerald-400 {
+  color: #34d399 !important;
+}
+
+/* ── 6. Prayer Schedule Pills ── */
+.prayer-item-pill {
+  transition: all 180ms ease !important;
+  box-sizing: border-box !important;
+}
+
+/* ── 7. Scrollbar Helpers ── */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Responsive card padding on small mobile screens */
+@media (max-width: 640px) {
+  .faith-widget-card,
+  .prayer-schedule-card,
+  .today-deeds-card,
+  .hadith-card {
+    padding: 16px !important;
+  }
+}
+
+/* ── 8. Mobile vs Desktop Adhkar Visibility ── */
+.mobile-adhkar {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 24px !important;
+  width: 100% !important;
+}
+
+@media (min-width: 1024px) {
+  .mobile-adhkar {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .faith-desktop-sidebar {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .faith-desktop-sidebar {
+    display: flex !important;
+  }
+}

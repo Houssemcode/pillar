@@ -10,6 +10,8 @@ export default function ProgressRing({
   trackColor = 'var(--color-surface-3)',
   children,
   size,
+  className = '',
+  style = {},
 }) {
   const r = radius - strokeWidth / 2
   const circumference = 2 * Math.PI * r
@@ -18,18 +20,20 @@ export default function ProgressRing({
 
   return (
     <div
+      className={className}
       style={{
         position: 'relative',
         width: svgSize,
         height: svgSize,
         flexShrink: 0,
+        ...style,
       }}
     >
       <svg
-        width={svgSize}
-        height={svgSize}
+        width="100%"
+        height="100%"
         viewBox={`0 0 ${svgSize} ${svgSize}`}
-        style={{ transform: 'rotate(-90deg)' }}
+        style={{ transform: 'rotate(-90deg)', display: 'block' }}
       >
         {/* Track */}
         <circle

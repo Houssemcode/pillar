@@ -23,14 +23,26 @@ export function ToastProvider({ children }) {
   }, [dismiss])
 
   // Convenience wrappers
-  const toastSuccess  = useCallback((title, message) => toast({ title, message, icon: '✅', color: '#10B981' }), [toast])
-  const toastPrayer   = useCallback((title, message) => toast({ title, message, icon: '🕌', color: '#10B981', duration: 6000 }), [toast])
-  const toastFocus    = useCallback((title, message) => toast({ title, message, icon: '🍅', color: '#F43F5E', duration: 5000 }), [toast])
-  const toastStreak   = useCallback((title, message) => toast({ title, message, icon: '🔥', color: '#F59E0B', duration: 5000 }), [toast])
+  const toastSuccess   = useCallback((title, message) => toast({ title, message, icon: '✅', color: '#10B981' }), [toast])
+  const toastError     = useCallback((title, message) => toast({ title, message, icon: '⚠️', color: '#F43F5E', duration: 5000 }), [toast])
+  const toastWarning   = useCallback((title, message) => toast({ title, message, icon: '⚠️', color: '#F59E0B', duration: 5000 }), [toast])
+  const toastPrayer    = useCallback((title, message) => toast({ title, message, icon: '🕌', color: '#10B981', duration: 6000 }), [toast])
+  const toastFocus     = useCallback((title, message) => toast({ title, message, icon: '🍅', color: '#F43F5E', duration: 5000 }), [toast])
+  const toastStreak    = useCallback((title, message) => toast({ title, message, icon: '🔥', color: '#F59E0B', duration: 5000 }), [toast])
   const toastMilestone = useCallback((title, message) => toast({ title, message, icon: '✨', color: '#8B5CF6', duration: 6000 }), [toast])
 
+  // Generic showToast(message, type) helper used across pages
+  const showToast = useCallback((message, type = 'success') => {
+    switch (type) {
+      case 'error':   return toastError(message)
+      case 'warning': return toastWarning(message)
+      case 'info':    return toast({ title: message, icon: 'ℹ️', color: '#3B82F6', duration: 4500 })
+      default:        return toastSuccess(message)
+    }
+  }, [toast, toastSuccess, toastError, toastWarning])
+
   return (
-    <ToastContext.Provider value={{ toast, toastSuccess, toastPrayer, toastFocus, toastStreak, toastMilestone, dismiss }}>
+    <ToastContext.Provider value={{ toast, toastSuccess, toastError, toastWarning, toastPrayer, toastFocus, toastStreak, toastMilestone, showToast, dismiss }}>
       {children}
       {createPortal(
         <div className="toast-container">

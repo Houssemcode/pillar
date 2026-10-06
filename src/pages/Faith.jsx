@@ -1,76 +1,49 @@
-import { useState, useEffect, useRef } from 'react'
-import ProgressRing from '../components/ui/ProgressRing'
+/**
+ * Faith.jsx — Faith & Spiritual Dashboard
+ *
+ * Fully integrated with Django Backend via `faithService`.
+ * Minimalist, zen-like summary dashboard:
+ * - Header: Minimalist daily prayer ribbon
+ * - Main: Adhkar Summary Cards (Morning / Evening) + Hadith of the Day
+ * - Sidebar: Today's Deeds checklist
+ * (Khatmah Tracker removed — handled in Habits module)
+ */
+import { useState, useEffect, useCallback } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import Checkbox from '../components/ui/Checkbox'
 import { useUser } from '../context/UserContext'
+import faithService from '../api/faithService'
+import PageLayout from '../components/layout/PageLayout'
+import './Faith.css'
 
-/* ─── Theme ────────────────────────────────────────────────── */
-const EM = '#10B981'          // emerald
-const EM_BG = '#10B98114'
-const EM_BD = '#10B98140'
+/* ─── Theme constants ──────────────────────────────────────── */
+const EM = '#10B981'
+const EM_SUBTLE = 'rgba(16, 185, 129, 0.08)'
+const EM_BORDER = 'rgba(16, 185, 129, 0.35)'
 
-/* ─── Prayer data ──────────────────────────────────────────── */
-const INITIAL_PRAYERS = [
-  { key: 'fajr', ar: 'الفجر', en: 'Fajr', time: '05:12', fard: 2, sunnah: 2 },
-  { key: 'dhuhr', ar: 'الظهر', en: 'Dhuhr', time: '12:47', fard: 4, sunnah: 4 },
-  { key: 'asr', ar: 'العصر', en: 'Asr', time: '16:20', fard: 4, sunnah: 0 },
-  { key: 'maghrib', ar: 'المغرب', en: 'Maghrib', time: '20:04', fard: 3, sunnah: 2 },
-  { key: 'isha', ar: 'العشاء', en: 'Isha', time: '21:38', fard: 4, sunnah: 2 },
-]
+/* ─── Shared card style ────────────────────────────────────── */
+const CARD_CLASSES = 'bg-white dark:bg-[#121212] border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm dark:shadow-none transition-all'
 
-function timeToMins(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m }
-
-
-
-/* ─── Morning/Evening Adhkar ───────────────────────────────── */
-const MORNING_ADHKAR = [
-  { id: 'm1', text: 'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ', count: 1 },
-  { id: 'm2', text: 'سُبْحَانَ اللهِ وَبِحَمْدِهِ', count: 100 },
-  { id: 'm3', text: 'أَعُوذُ بِاللهِ مِنَ الشَّيْطَانِ الرَّجِيمِ', count: 3 },
-  { id: 'm4', text: 'بِسْمِ اللهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ', count: 3 },
-]
-
-const EVENING_ADHKAR = [
-  { id: 'e1', text: 'أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ', count: 1 },
-  { id: 'e2', text: 'سُبْحَانَ اللهِ وَبِحَمْدِهِ', count: 100 },
-  { id: 'e3', text: 'اللَّهُمَّ بِكَ أَمْسَيْنَا وَبِكَ أَصْبَحْنَا', count: 1 },
-]
-
-/* ─── Hadiths ──────────────────────────────────────────────── */
-const HADITHS = [
-  { text: 'إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى', source: 'متفق عليه' },
-  { text: 'الطَّهُورُ شَطْرُ الإِيمَانِ', source: 'صحيح مسلم' },
-  { text: 'خَيْرُ النَّاسِ أَنْفَعُهُمْ لِلنَّاسِ', source: 'المعجم الأوسط' },
-  { text: 'مَنْ كَانَ يُؤْمِنُ بِاللَّهِ وَالْيَوْمِ الآخِرِ فَلْيَقُلْ خَيْرًا أَوْ لِيَصْمُتْ', source: 'متفق عليه' },
-  { text: 'الْمُؤْمِنُ الْقَوِيُّ خَيْرٌ وَأَحَبُّ إِلَى اللَّهِ مِنَ الْمُؤْمِنِ الضَّعِيفِ', source: 'صحيح مسلم' },
-  { text: 'لَا يُؤْمِنُ أَحَدُكُمْ حَتَّى يُحِبَّ لِأَخِيهِ مَا يُحِبُّ لِنَفْسِهِ', source: 'متفق عليه' },
-  { text: 'مَنْ سَلَكَ طَرِيقًا يَلْتَمِسُ فِيهِ عِلْمًا سَهَّلَ اللَّهُ لَهُ طَرِيقًا إِلَى الْجَنَّةِ', source: 'صحيح مسلم' },
-]
-
-/* ─── Good Deeds ───────────────────────────────────────────── */
-const GOOD_DEEDS_LIST = [
-  { id: 'fast', ar: 'صيام', en: 'Fasting', emoji: '🌙' },
-  { id: 'sadaqa', ar: 'صدقة', en: 'Sadaqah', emoji: '💰' },
-  { id: 'quran', ar: 'قراءة القرآن', en: 'Read Quran', emoji: '📖' },
-  { id: 'qiyam', ar: 'قيام الليل', en: 'Night Prayer', emoji: '🌟' },
-  { id: 'sick', ar: 'عيادة مريض', en: 'Visit Sick', emoji: '🤲' },
-  { id: 'help', ar: 'مساعدة غيره', en: 'Help Others', emoji: '🫂' },
-  { id: 'duaa', ar: 'دعاء', en: 'Make Duaa', emoji: '🙏' },
-  { id: 'silah', ar: 'صلة الرحم', en: 'Family Ties', emoji: '❤️' },
-]
-
-/* ─── Helper: day-of-year for hadith rotation ─────────────── */
-function dayOfYear() {
-  const now = new Date()
-  const start = new Date(now.getFullYear(), 0, 0)
-  return Math.floor((now - start) / 86400000)
+function timeToMins(t) {
+  if (!t || typeof t !== 'string') return 0
+  const [h, m] = t.split(':').map(Number)
+  return (h || 0) * 60 + (m || 0)
 }
 
-/* ═══════════════════════════════════════════════════
-   SUB-COMPONENTS
-   ═══════════════════════════════════════════════════ */
+function getTodayDateStr() {
+  const today = new Date()
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+}
 
-/* Prayer schedule banner & dropdown card */
+/* ═══════════════════════════════════════════════════════════
+   SUB-COMPONENTS
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Prayer Schedule Card ─────────────────────────────────── */
 function PrayerScheduleCard({ prayers, now, onToggleFard, isExcused }) {
-  const [isOpen, setIsOpen] = useState(true) // Open by default
+  const { t, i18n } = useTranslation()
+  const isAr = i18n.language === 'ar' || i18n.language?.startsWith('ar')
   const mins = now.getHours() * 60 + now.getMinutes()
   const next = prayers.find(p => !p.fardDone && timeToMins(p.time) > mins) || null
 
@@ -81,209 +54,135 @@ function PrayerScheduleCard({ prayers, now, onToggleFard, isExcused }) {
     countdown = h > 0 ? `${h}h ${m}m` : `${m}m`
   }
 
-  return (
-    <div className="glass-card" style={{ padding: 0, marginBottom: 20 }}>
-      {/* Banner Top */}
-      <div className="faith-next-banner" style={{ borderRadius: 0, border: 'none' }}>
-        <div style={{ flex: 1 }}>
-          {isExcused ? (
-            <div className="faith-next-complete">
-              <span style={{ fontSize: 22 }}>🌸</span>
-              <span>أنتِ في فترة العذر الشرعي</span>
-            </div>
-          ) : next ? (
-            <>
-              <div className="faith-next-label">الصلاة القادمة</div>
-              <div className="faith-next-name">
-                <span style={{ fontFamily: 'var(--font-arabic)', fontSize: 22, fontWeight: 700 }}>{next.ar}</span>
-                <span style={{ fontSize: 14, opacity: 0.7, marginRight: 8 }}>{next.en}</span>
-              </div>
-              <div className="faith-next-time">
-                {next.time}
-                <span style={{ color: EM, fontWeight: 700, marginRight: 6 }}> · بعد {countdown}</span>
-              </div>
-            </>
-          ) : (
-            <div className="faith-next-complete">
-              <span style={{ fontSize: 22 }}>🌙</span>
-              <span>تم أداء صلوات اليوم</span>
-            </div>
-          )}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            style={{
-              background: EM, color: '#ffffff', border: 'none',
-              borderRadius: 8, padding: '8px 14px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700,
-              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
-              transition: 'all 150ms'
-            }}
-          >
-            <span>{isOpen ? 'إخفاء' : 'عرض'}</span>
-            <svg
-              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 200ms' }}
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Dropdown Content */}
-      {isOpen && (
-        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--color-border)', background: 'var(--color-surface-1)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
-            <span>مواقيت صلوات اليوم</span>
-            <span>انقر للتعليم كتمت</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {prayers.map(p => {
-              const pMins = timeToMins(p.time)
-              const isNext = !isExcused && !p.fardDone && pMins > mins && next?.key === p.key
-              return (
-                <div
-                  key={p.key}
-                  onClick={() => !isExcused && onToggleFard(p.key)}
-                  style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '12px 16px', borderRadius: 10, cursor: isExcused ? 'not-allowed' : 'pointer',
-                    background: isExcused ? 'rgba(0,0,0,0.02)' : p.fardDone ? 'transparent' : isNext ? 'rgba(16, 185, 129, 0.08)' : 'var(--color-surface-2)',
-                    border: `1px solid ${isExcused ? 'transparent' : p.fardDone ? 'var(--color-border)' : isNext ? EM : 'transparent'}`,
-                    transition: 'all 150ms',
-                    opacity: isExcused ? 0.6 : 1
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      width: isExcused ? 'auto' : 20, height: 20, borderRadius: isExcused ? 4 : '50%',
-                      background: isExcused ? 'var(--color-surface-3)' : p.fardDone ? EM : 'transparent',
-                      border: isExcused ? 'none' : `2px solid ${p.fardDone ? EM : 'var(--color-text-muted)'}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      padding: isExcused ? '0 6px' : 0
-                    }}>
-                      {isExcused ? (
-                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-text-muted)' }}>معفاة</span>
-                      ) : p.fardDone ? (
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round"><polyline points="20,6 9,17 4,12" /></svg>
-                      ) : null}
-                    </div>
-                    <div>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text)', fontFamily: 'var(--font-arabic)' }}>صلاة {p.ar}</span>
-                      <span style={{ fontSize: 13, color: 'var(--color-text-muted)', marginLeft: 8 }}>({p.en})</span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: isNext ? EM : 'var(--color-text-muted)', fontVariantNumeric: 'tabular-nums' }}>{p.time}</span>
-                    <div style={{ fontSize: 11, color: 'var(--color-text-muted)', background: 'var(--color-surface-3)', padding: '2px 8px', borderRadius: 6 }}>
-                      {p.fard} فرض {p.sunnah > 0 ? `· ${p.sunnah} سنة` : ''}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-
-
-
-
-/* Quran / Khatmah tracker — Page Based */
-function KhatmahTracker({ currentPage, onUpdate }) {
-  const TOTAL_PAGES = 604
-  const pct = Math.round((currentPage / TOTAL_PAGES) * 100)
-  const remaining = TOTAL_PAGES - currentPage
+  const completedCount = prayers.filter(p => p.fardDone).length
 
   return (
-    <div className="glass-card" style={{ padding: '20px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(16, 185, 129, 0.15)', color: EM, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
+    <div className={`prayer-schedule-card faith-widget-card w-full ${CARD_CLASSES}`}>
+      {/* ── Status row ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        {isExcused ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--color-text-muted)', fontSize: 13 }}>
+            <span>🌸</span>
+            <span>{t('faith.excusedPeriod')}</span>
           </div>
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>Khatmah Tracker</span>
+        ) : next ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: EM, display: 'inline-block',
+              boxShadow: `0 0 0 3px ${EM_SUBTLE}`,
+              flexShrink: 0,
+            }} />
+            <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              {t('faith.nextPrayer')}
+            </span>
+            <span className="text-gray-300 dark:text-zinc-700 select-none">·</span>
+            <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white" style={{ fontFamily: isAr ? 'var(--font-arabic)' : 'inherit' }}>
+              {isAr ? `صلاة ${next.ar}` : `${next.en} Prayer`}
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: EM, fontVariantNumeric: 'tabular-nums' }}>
+              {next.time}
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              ({t('faith.inCountdown', { countdown })})
+            </span>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: EM, fontSize: 13, fontWeight: 600 }}>
+            <span>🌙</span>
+            <span>{t('faith.allPrayersCompleted')}</span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <span>{t('faith.prayerTimesToday')}</span>
+          <span className="text-gray-300 dark:text-zinc-700 select-none">·</span>
+          <span className="font-semibold text-gray-900 dark:text-white" style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {completedCount}/{prayers.length}
+          </span>
         </div>
-        <button style={{ background: 'none', border: 'none', color: 'var(--color-text)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Update</button>
       </div>
 
-      {/* Progress Section */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 24 }}>
-        <ProgressRing radius={36} strokeWidth={6} progress={pct} size={72} color={EM} trackColor="var(--color-surface-3)">
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)', lineHeight: 1 }}>{pct}%</div>
-          </div>
-        </ProgressRing>
-        <div>
-          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 2 }}>Current position</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text)', marginBottom: 2 }}>
-            Page {currentPage} <span style={{ color: 'var(--color-text-muted)', fontWeight: 500, fontSize: 14 }}>· Al-Fatihah</span>
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{remaining} pages remaining</div>
-        </div>
-      </div>
-
-      {/* Target button */}
-      <div style={{ padding: '14px 16px', borderRadius: 10, background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={EM} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
-        <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text)' }}>Read 2 pages today</span>
-      </div>
-
-      {/* Log button */}
-      <button
-        onClick={() => onUpdate(Math.min(TOTAL_PAGES, currentPage + 2))}
-        style={{ width: '100%', padding: '14px 16px', borderRadius: 10, background: 'transparent', border: '1px solid var(--color-border)', color: 'var(--color-text)', fontSize: 14, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'background 150ms' }}
-        onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface-3)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      {/* ── 5 Prayer Cards Row (Single horizontal scrollable row on mobile) ── */}
+      <div
+        className="prayer-schedule-grid flex flex-nowrap overflow-x-auto hide-scrollbar gap-4"
+        style={{
+          display: 'flex',
+          flexWrap: 'nowrap',
+          overflowX: 'auto',
+          gap: 16,
+          paddingBottom: 4,
+        }}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>
-        Log 2 pages read today
-      </button>
-    </div>
-  )
-}
+        {prayers.map(p => {
+          const pMins = timeToMins(p.time)
+          const isNext = !isExcused && !p.fardDone && pMins > mins && next?.key === p.key
+          const isDone = p.fardDone
+          const prayerName = isAr ? p.ar : p.en
 
-/* Morning/Evening Adhkar section */
-function AdhkarSection({ list, done, onToggle, title, icon }) {
-  const doneCount = list.filter(a => done.has(a.id)).length
-  return (
-    <div className="glass-card">
-      <div className="faith-section-header" style={{ marginBottom: 10 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>{icon} {title}</span>
-        <span style={{ fontSize: 11, color: EM }}>{doneCount}/{list.length}</span>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {list.map(item => {
-          const checked = done.has(item.id)
           return (
             <button
-              key={item.id}
-              onClick={() => onToggle(item.id)}
-              className={`faith-adhkar-item ${checked ? 'faith-adhkar-item--done' : ''}`}
+              key={p.key}
+              type="button"
+              disabled={isExcused}
+              onClick={() => !isExcused && onToggleFard(p.key)}
+              className={`prayer-item-pill snap-start flex flex-col justify-between p-3 rounded-xl min-w-[120px] shrink-0 border cursor-pointer transition-all ${
+                isNext
+                  ? 'border-emerald-500/50 bg-emerald-50 dark:bg-emerald-500/10 shadow-sm'
+                  : isDone
+                  ? 'border-gray-200 dark:border-zinc-800/60 bg-gray-100/70 dark:bg-zinc-900/40 opacity-70'
+                  : 'border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 hover:border-gray-300 dark:hover:border-zinc-700'
+              }`}
+              style={{
+                flex: '1 0 120px',
+                minHeight: 72,
+                cursor: isExcused ? 'not-allowed' : 'pointer',
+                opacity: isExcused ? 0.45 : isDone ? 0.75 : 1,
+                textAlign: isAr ? 'right' : 'left',
+              }}
             >
-              <div className={`faith-adhkar-check ${checked ? 'faith-adhkar-check--done' : ''}`}>
-                {checked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="20,6 9,17 4,12" /></svg>}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span
+                  className={`text-xs sm:text-sm font-bold truncate flex-1 ${
+                    isDone
+                      ? 'line-through text-gray-400 dark:text-zinc-500'
+                      : isNext
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-gray-900 dark:text-white'
+                  }`}
+                  style={{ fontFamily: isAr ? 'var(--font-arabic)' : 'inherit' }}
+                >
+                  {prayerName}
+                </span>
+                <span style={{
+                  width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+                  marginLeft: isAr ? 0 : 4, marginRight: isAr ? 4 : 0,
+                  border: isDone ? `1.5px solid ${EM}` : isNext ? `1.5px solid ${EM}` : '1.5px solid #d1d5db',
+                  background: isDone ? EM : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 9, fontWeight: 800, color: isDone ? '#fff' : 'transparent',
+                }}>
+                  {isDone ? '✓' : ''}
+                </span>
               </div>
-              <span dir="rtl" style={{
-                flex: 1, textAlign: 'right', fontSize: 13,
-                fontFamily: 'var(--font-arabic)',
-                color: checked ? 'var(--color-text-muted)' : 'var(--color-text)',
-                textDecoration: checked ? 'line-through' : 'none',
-              }}>
-                {item.text}
-              </span>
-              {item.count > 1 && (
-                <span style={{ fontSize: 10, color: 'var(--color-text-muted)', flexShrink: 0 }}>×{item.count}</span>
-              )}
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span
+                  className={`text-xs font-semibold ${
+                    isNext
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : isDone
+                      ? 'text-gray-400 dark:text-zinc-500'
+                      : 'text-gray-600 dark:text-gray-400'
+                  }`}
+                  style={{ fontVariantNumeric: 'tabular-nums' }}
+                >
+                  {p.time}
+                </span>
+                <span className="text-[10px] text-gray-400 dark:text-zinc-500">
+                  {p.fard}R
+                </span>
+              </div>
             </button>
           )
         })}
@@ -292,121 +191,259 @@ function AdhkarSection({ list, done, onToggle, title, icon }) {
   )
 }
 
-/* Hadith of the Day */
-function HadithCard() {
-  const hadith = HADITHS[dayOfYear() % HADITHS.length]
+/* ── Adhkar Summary Card ──────────────────────────────────── */
+function AdhkarSummaryCard({ type, icon, title, description, items = [], onStart }) {
+  const { t } = useTranslation()
+  const total = items.length
+  const doneCount = items.filter(a => a.done).length
+  const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0
+  const isAllDone = total > 0 && doneCount === total
+
+  const isMorning = type === 'morning'
+  const accentColor = isMorning ? '#F59E0B' : '#6366F1'
+  const accentBg = isMorning ? 'rgba(245, 158, 11, 0.08)' : 'rgba(99, 102, 241, 0.08)'
+  const accentBorder = isMorning ? 'rgba(245, 158, 11, 0.25)' : 'rgba(99, 102, 241, 0.25)'
+
   return (
-    <div className="faith-hadith-card">
-      <div className="faith-section-header" style={{ marginBottom: 10 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: EM }}>
-          حديث اليوم
+    <div className={`faith-widget-card w-full ${CARD_CLASSES} flex flex-col justify-between min-h-[220px]`}>
+      {/* Top Header */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12,
+            background: accentBg, border: `1px solid ${accentBorder}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 22,
+          }}>
+            {icon}
+          </div>
+          <span
+            className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+              isAllDone
+                ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30'
+                : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-zinc-700/60'
+            }`}
+            style={{ fontVariantNumeric: 'tabular-nums' }}
+          >
+            {isAllDone ? `✓ ${t('faith.done')}` : `${doneCount} / ${total}`}
+          </span>
         </div>
-        <a href="#" style={{ fontSize: 11, color: EM, textDecoration: 'none', fontWeight: 600, letterSpacing: 'normal', textTransform: 'none' }}>مكتبة الأحاديث</a>
+
+        <h3 className="text-base font-bold text-gray-900 dark:text-white mb-1">
+          {title}
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
+          {description}
+        </p>
       </div>
-      <blockquote dir="rtl" className="faith-hadith-text">
-        « {hadith.text} »
-      </blockquote>
-      <div style={{ textAlign: 'right', fontSize: 11, color: 'var(--color-text-muted)', marginTop: 8, fontStyle: 'italic' }}>
-        — {hadith.source}
+
+      {/* Progress bar + Action Button */}
+      <div>
+        {/* Progress Bar */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, fontSize: 11 }}>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {t('faith.adhkarProgress', { count: doneCount, total })}
+            </span>
+            <span
+              className={`text-xs font-bold ${isAllDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              {pct}%
+            </span>
+          </div>
+          <div className="w-full h-1.5 bg-gray-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+            <div style={{
+              height: '100%', borderRadius: 4,
+              background: isAllDone ? EM : accentColor,
+              width: `${pct}%`, transition: 'width 300ms ease',
+            }} />
+          </div>
+        </div>
+
+        {/* Start Reading Button */}
+        <button
+          type="button"
+          onClick={onStart}
+          style={{
+            width: '100%',
+            padding: '10px 16px',
+            borderRadius: 12,
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+            background: isAllDone ? 'rgba(16, 185, 129, 0.1)' : accentBg,
+            backgroundColor: isAllDone ? 'rgba(16, 185, 129, 0.1)' : accentBg,
+            color: isAllDone ? EM : accentColor,
+            border: `1px solid ${isAllDone ? 'rgba(16, 185, 129, 0.3)' : accentBorder}`,
+            outline: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            transition: 'all 150ms ease',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.15)' }}
+          onMouseLeave={e => { e.currentTarget.style.filter = 'none' }}
+        >
+          <span>{t('faith.startReading')}</span>
+          <span style={{ fontSize: 14 }}>→</span>
+        </button>
       </div>
     </div>
   )
 }
 
-/* Today's Deeds unified list */
-function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed, isExcused }) {
-  const filteredDeeds = isExcused
-    ? GOOD_DEEDS_LIST.filter(d => d.id !== 'fast' && d.id !== 'qiyam')
-    : GOOD_DEEDS_LIST;
-
-  const items = [
-    // Deeds mapped from GOOD_DEEDS_LIST
-    ...filteredDeeds.map(d => {
-      let color = '#3B82F6' // default blue
-      let icon = <span style={{ fontSize: 16 }}>{d.emoji}</span>
-      let desc = ''
-      let isRecommended = isExcused && ['sadaqa', 'quran', 'duaa'].includes(d.id)
-
-      if (d.en === 'Sadaqah') {
-        color = '#E11D48';
-        icon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg>
-        desc = 'Charity extinguishes sin as water extinguishes fire — and it does not decrease wealth'
-      } else if (d.en === 'Fasting') {
-        color = '#10B981';
-      }
-
-      return {
-        id: d.id,
-        isDone: goodDeeds.has(d.id),
-        onToggle: () => toggleDeed(d.id),
-        ar: d.ar,
-        en: d.en,
-        desc,
-        icon,
-        color,
-        isRecommended
-      }
-    })
-  ]
-
-  const doneCount = items.filter(i => i.isDone).length;
+/* ── Hadith of the Day ───────────────────────────────────── */
+function HadithCard({ hadith }) {
+  const { t, i18n } = useTranslation()
+  const isAr = i18n.language === 'ar' || i18n.language?.startsWith('ar')
+  if (!hadith) return null
 
   return (
-    <div className="glass-card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div className={`hadith-card faith-widget-card w-full ${CARD_CLASSES}`}>
       {/* Header */}
-      <div style={{ padding: '20px 20px 16px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--color-border)' }}>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: EM, fontSize: 11 }}>◈</span>
+          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+            {t('faith.hadithOfTheDay')}
+          </span>
         </div>
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)' }}>Today's Deeds</div>
-          <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 2 }}>{items.length} available · {doneCount} completed</div>
-        </div>
+        <Link
+          to="/hadiths"
+          className="text-xs font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1 transition-colors"
+          style={{ textDecoration: 'none' }}
+        >
+          <span>{t('faith.hadithsLibrary')}</span>
+          <span>→</span>
+        </Link>
       </div>
 
-      {/* Scrollable list */}
-      <div className="custom-scrollbar" style={{ maxHeight: 500, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {items.map(item => (
+      {/* Arabic text */}
+      <blockquote
+        dir="rtl"
+        className="text-lg leading-loose font-medium text-gray-900 dark:text-white select-text my-4 text-right"
+        style={{
+          fontFamily: 'var(--font-arabic)',
+          margin: 0,
+          padding: 0,
+          border: 'none',
+          background: 'transparent',
+        }}
+      >
+        « {hadith.text} »
+      </blockquote>
+
+      {/* English translation */}
+      {!isAr && hadith.translation && (
+        <p className="text-sm text-gray-600 dark:text-gray-400 italic mt-3 leading-relaxed text-left" dir="ltr">
+          "{hadith.translation}"
+        </p>
+      )}
+
+      {/* Source */}
+      <div
+        className="mt-4 pt-3 border-t border-gray-100 dark:border-zinc-800/60 text-xs text-gray-500 dark:text-gray-400 italic"
+        style={{
+          textAlign: isAr ? 'right' : 'left',
+          direction: isAr ? 'rtl' : 'ltr',
+        }}
+      >
+        — {hadith.source}{hadith.narrator ? (isAr ? ` (رواه ${hadith.narrator})` : ` (${hadith.narrator})`) : ''}
+      </div>
+    </div>
+  )
+}
+
+/* ── Today's Deeds List ──────────────────────────────────── */
+function TodayDeedsList({ deeds = [], doneDeeds = new Set(), onToggleDeed, isExcused }) {
+  const { t, i18n } = useTranslation()
+  const isAr = i18n.language === 'ar' || i18n.language?.startsWith('ar')
+
+  const filteredDeeds = isExcused
+    ? deeds.filter(d => !['fast', 'qiyam'].includes(String(d.id).toLowerCase()) && !['fasting', 'night prayer'].includes((d.title_en || '').toLowerCase()))
+    : deeds
+
+  const items = filteredDeeds.map(d => {
+    const isRecommended = isExcused && (d.is_recommended_excuse || ['sadaqa', 'quran', 'duaa'].includes(String(d.id).toLowerCase()))
+    return {
+      id: d.id,
+      isDone: doneDeeds.has(d.id),
+      onToggle: () => onToggleDeed(d.id),
+      ar: d.title,
+      en: d.title_en || d.title,
+      desc: d.description,
+      emoji: d.emoji || '🤲',
+      isRecommended,
+    }
+  })
+
+  const doneCount = items.filter(i => i.isDone).length
+
+  return (
+    <div className={`today-deeds-card faith-widget-card w-full ${CARD_CLASSES}`}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#F59E0B', fontSize: 15 }}>✦</span>
+          <span className="text-sm font-bold text-gray-900 dark:text-white">
+            {t('faith.todayDeeds', "Today's Deeds")}
+          </span>
+        </div>
+        <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {doneCount} / {items.length}
+        </span>
+      </div>
+
+      {/* Deeds list */}
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {items.map((item, idx) => (
           <div
             key={item.id}
-            style={{
-              display: 'flex', flexDirection: 'column', gap: 12,
-              padding: '16px', borderRadius: 12,
-              border: item.isRecommended ? `1px solid ${item.color}80` : `1px solid ${item.isDone ? 'var(--color-border)' : item.color + '40'}`,
-              background: item.isRecommended && !item.isDone ? `${item.color}15` : item.isDone ? 'transparent' : `${item.color}10`,
-              transition: 'all 200ms',
-              opacity: item.isDone ? 0.6 : 1,
-              boxShadow: item.isRecommended && !item.isDone ? `0 0 0 1px ${item.color}30` : 'none'
-            }}
+            onClick={item.onToggle}
+            className={`faith-deed-row flex items-start gap-3 p-2.5 rounded-xl border-b cursor-pointer transition-all hover:bg-gray-50 dark:hover:bg-zinc-800/50 ${
+              idx < items.length - 1 ? 'border-gray-100 dark:border-zinc-800/50' : 'border-transparent'
+            } ${item.isDone ? 'opacity-60' : 'opacity-100'}`}
           >
-            {/* Header row: clickable to toggle */}
-            <div
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', cursor: 'pointer' }}
-              onClick={item.onToggle}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ color: item.color, display: 'flex', alignItems: 'center' }}>{item.icon}</span>
-                <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text)' }}>{item.en}</span>
-                {item.isRecommended && (
-                  <span style={{ fontSize: 10, background: item.color, color: '#fff', padding: '2px 6px', borderRadius: 10, fontWeight: 600 }}>مُستحب</span>
-                )}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 13, color: 'var(--color-text-muted)', fontFamily: 'var(--font-arabic)' }}>{item.ar}</span>
-                <div style={{ width: 22, height: 22, borderRadius: '50%', border: `1.5px solid ${item.isDone ? 'var(--color-text-muted)' : item.color + '50'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {item.isDone && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" strokeWidth="3" strokeLinecap="round"><polyline points="20,6 9,17 4,12" /></svg>}
-                </div>
-              </div>
+            {/* Checkbox */}
+            <div style={{ paddingTop: 2, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+              <Checkbox
+                checked={item.isDone}
+                onChange={item.onToggle}
+                size="sm"
+                aria-label={isAr ? item.ar : item.en}
+              />
             </div>
 
-            {/* Description */}
-            {item.desc && (
-              <div style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.4, width: '100%' }}>
-                {item.desc}
+            {/* Content */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13 }}>{item.emoji}</span>
+                <span
+                  className={`text-xs sm:text-sm font-medium ${
+                    item.isDone ? 'line-through text-gray-400 dark:text-zinc-500' : 'text-gray-900 dark:text-white'
+                  }`}
+                  style={{ fontFamily: isAr ? 'var(--font-arabic)' : 'inherit' }}
+                >
+                  {isAr ? item.ar : item.en}
+                </span>
+                {item.isRecommended && !item.isDone && (
+                  <span style={{
+                    fontSize: 10, color: EM, fontWeight: 600,
+                    background: EM_SUBTLE, border: `1px solid ${EM_BORDER}`,
+                    padding: '1px 7px', borderRadius: 6,
+                  }}>
+                    {isAr ? 'مُستحب' : 'Recommended'}
+                  </span>
+                )}
               </div>
-            )}
-
-
+              {!isAr && item.desc && (
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-snug">
+                  {item.desc}
+                </p>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -414,150 +451,271 @@ function TodayDeedsList({ prayers, toggleFard, goodDeeds, toggleDeed, isExcused 
   )
 }
 
-/* ═══════════════════════════════════════════════════
-   MAIN PAGE
-   ═══════════════════════════════════════════════════ */
+/* ── Skeleton Loader ──────────────────────────────────────── */
+function FaithSkeleton() {
+  const pulse = { background: 'var(--color-surface-3, rgba(125,125,125,0.12))', borderRadius: 8 }
+
+  return (
+    <div className="page faith-page page--layout bg-gray-50 dark:bg-[#09090b]">
+      <PageLayout
+        mainClassName="faith-main-column w-full"
+        sidebarClassName="faith-desktop-sidebar hidden lg:block"
+        sidebar={
+          <div className="flex flex-col gap-6 w-full">
+            <div className={`faith-widget-card w-full ${CARD_CLASSES}`} style={{ minHeight: 220 }}>
+              <div style={{ ...pulse, height: 44, width: 44, borderRadius: 12, marginBottom: 14 }} />
+              <div style={{ ...pulse, height: 18, width: '50%', marginBottom: 8 }} />
+              <div style={{ ...pulse, height: 14, width: '70%', marginBottom: 20 }} />
+              <div style={{ ...pulse, height: 36, borderRadius: 12 }} />
+            </div>
+            <div className={`faith-widget-card w-full ${CARD_CLASSES}`} style={{ minHeight: 220 }}>
+              <div style={{ ...pulse, height: 44, width: 44, borderRadius: 12, marginBottom: 14 }} />
+              <div style={{ ...pulse, height: 18, width: '50%', marginBottom: 8 }} />
+              <div style={{ ...pulse, height: 14, width: '70%', marginBottom: 20 }} />
+              <div style={{ ...pulse, height: 36, borderRadius: 12 }} />
+            </div>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-6 lg:gap-8 w-full">
+          <div className={`prayer-schedule-card faith-widget-card w-full ${CARD_CLASSES}`}>
+            <div style={{ ...pulse, height: 20, width: '30%', marginBottom: 16 }} />
+            <div className="prayer-schedule-grid flex flex-nowrap overflow-x-auto hide-scrollbar gap-4" style={{ gap: 16, paddingBottom: 4 }}>
+              {[1, 2, 3, 4, 5].map(i => (
+                <div
+                  key={i}
+                  className="prayer-item-pill snap-start"
+                  style={{ ...pulse, height: 72, borderRadius: 12, flex: '1 0 120px', minWidth: 120, flexShrink: 0 }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className={`hadith-card faith-widget-card w-full ${CARD_CLASSES}`}>
+            <div style={{ ...pulse, height: 16, width: '25%', marginBottom: 16 }} />
+            <div style={{ ...pulse, height: 24, width: '80%', marginBottom: 12 }} />
+            <div style={{ ...pulse, height: 16, width: '50%' }} />
+          </div>
+
+          {/* Mobile-only Adhkar Skeleton */}
+          <div className="mobile-adhkar flex flex-col gap-6 lg:hidden w-full">
+            <div className={`faith-widget-card w-full ${CARD_CLASSES}`} style={{ minHeight: 220 }}>
+              <div style={{ ...pulse, height: 44, width: 44, borderRadius: 12, marginBottom: 14 }} />
+              <div style={{ ...pulse, height: 18, width: '50%', marginBottom: 8 }} />
+              <div style={{ ...pulse, height: 14, width: '70%', marginBottom: 20 }} />
+              <div style={{ ...pulse, height: 36, borderRadius: 12 }} />
+            </div>
+            <div className={`faith-widget-card w-full ${CARD_CLASSES}`} style={{ minHeight: 220 }}>
+              <div style={{ ...pulse, height: 44, width: 44, borderRadius: 12, marginBottom: 14 }} />
+              <div style={{ ...pulse, height: 18, width: '50%', marginBottom: 8 }} />
+              <div style={{ ...pulse, height: 14, width: '70%', marginBottom: 20 }} />
+              <div style={{ ...pulse, height: 36, borderRadius: 12 }} />
+            </div>
+          </div>
+
+          <div className={`today-deeds-card faith-widget-card w-full ${CARD_CLASSES}`}>
+            <div style={{ ...pulse, height: 18, width: '35%', marginBottom: 16 }} />
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} style={{ ...pulse, height: 38, borderRadius: 8, marginBottom: 8 }} />
+            ))}
+          </div>
+        </div>
+      </PageLayout>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MAIN FAITH DASHBOARD
+   ═══════════════════════════════════════════════════════════ */
 export default function Faith() {
+  const { t, i18n } = useTranslation()
+  const isAr = i18n?.language === 'ar' || i18n?.language?.startsWith('ar')
+  const navigate = useNavigate()
   const { isExcused } = useUser()
   const [now, setNow] = useState(new Date())
-  const [prayers, setPrayers] = useState(
-    INITIAL_PRAYERS.map(p => ({ ...p, fardDone: false, sunnahDone: 0 }))
-  )
 
-  const [khatmahPage, setKhatmahPage] = useState(228)
-  const [morningDone, setMorningDone] = useState(new Set())
-  const [eveningDone, setEveningDone] = useState(new Set())
-  const [goodDeeds, setGoodDeeds] = useState(new Set())
-  const [adhkarTab, setAdhkarTab] = useState('morning') // 'morning' | 'evening'
+  const [morningAdhkar, setMorningAdhkar] = useState([])
+  const [eveningAdhkar, setEveningAdhkar] = useState([])
+  const [hadithOfTheDay, setHadithOfTheDay] = useState(null)
+  const [goodDeeds, setGoodDeeds] = useState([])
+  const [prayers, setPrayers] = useState([])
+  const [doneDeeds, setDoneDeeds] = useState(() => new Set())
 
-  // Live clock
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
+
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(id)
   }, [])
 
-  /* ── Prayer handlers ── */
-  const toggleFard = key => setPrayers(p => p.map(pr => pr.key === key ? { ...pr, fardDone: !pr.fardDone } : pr))
-  const toggleSunnah = (key, idx) =>
-    setPrayers(p => p.map(pr => {
-      if (pr.key !== key) return pr
-      const current = pr.sunnahDone ?? 0
-      return { ...pr, sunnahDone: current > idx ? idx : idx + 1 }
-    }))
+  const loadData = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+    const dateStr = getTodayDateStr()
+    try {
+      const [morningData, eveningData, hadithData, deedsData, prayersData] = await Promise.all([
+        faithService.getAdhkar({ category: 'morning', date: dateStr }).catch(() => []),
+        faithService.getAdhkar({ category: 'evening', date: dateStr }).catch(() => []),
+        faithService.getHadithOfTheDay().catch(() => null),
+        faithService.getGoodDeeds().catch(() => []),
+        faithService.getPrayers(dateStr).catch(() => []),
+      ])
 
+      setMorningAdhkar(Array.isArray(morningData) ? morningData : [])
+      setEveningAdhkar(Array.isArray(eveningData) ? eveningData : [])
+      setHadithOfTheDay(hadithData || null)
+      setGoodDeeds(deedsData || [])
+      setPrayers(prayersData || [])
 
+      if (Array.isArray(deedsData)) {
+        const initialDoneDeeds = deedsData.filter(d => d.done).map(d => d.id)
+        if (initialDoneDeeds.length > 0) setDoneDeeds(new Set(initialDoneDeeds))
+      }
+    } catch (err) {
+      console.error('[Faith] Failed to load dashboard data:', err)
+      setError(err.message + (err.response ? ' (Status: ' + err.response.status + ')' : ' (Network Error)'))
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
+  useEffect(() => { loadData() }, [loadData])
 
-  /* ── Adhkar handler ── */
-  const toggleMorning = id => setMorningDone(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
-  const toggleEvening = id => setEveningDone(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
+  const toggleFard = useCallback(async (key) => {
+    const prev = prayers.find(p => p.key === key)
+    if (!prev) return
+    const dateStr = getTodayDateStr()
+    setPrayers(ps => ps.map(p => p.key === key ? { ...p, fardDone: !p.fardDone } : p))
+    try {
+      const updated = await faithService.togglePrayer(key, dateStr)
+      setPrayers(ps => ps.map(p => p.key === key ? { ...p, fardDone: updated.fardDone } : p))
+    } catch {
+      setPrayers(ps => ps.map(p => p.key === key ? prev : p))
+    }
+  }, [prayers])
 
-  /* ── Good deeds ── */
-  const toggleDeed = id => setGoodDeeds(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
+  const toggleDeedItem = useCallback(async (id) => {
+    const isCurrentlyDone = doneDeeds.has(id)
+    setDoneDeeds(prev => {
+      const next = new Set(prev)
+      if (isCurrentlyDone) next.delete(id)
+      else next.add(id)
+      return next
+    })
+    try {
+      await faithService.toggleGoodDeed({ deed_id: id, date: getTodayDateStr() })
+    } catch {
+      setDoneDeeds(prev => {
+        const next = new Set(prev)
+        if (isCurrentlyDone) next.add(id)
+        else next.delete(id)
+        return next
+      })
+    }
+  }, [doneDeeds])
 
-  /* ── Stats ── */
-  const donePrayers = prayers.filter(p => p.fardDone).length
-  const prayerPct = Math.round((donePrayers / prayers.length) * 100)
-
+  if (isLoading) return <FaithSkeleton />
 
   return (
-    <div className="page faith-page">
-
-      {/* ── Prayer schedule banner & dropdown card ── */}
-      <PrayerScheduleCard prayers={prayers} now={now} onToggleFard={toggleFard} isExcused={isExcused} />
-
-      {/* ── Main two-column layout ── */}
-      <div className="faith-layout">
-
-        {/* ═══ LEFT 60% ═══ */}
-        <div className="faith-left">
-
-
-          {/* Adhkar tabs */}
-          <div className="glass-card" style={{ padding: '16px 18px' }}>
-            <div className="faith-section-header" style={{ marginBottom: 12 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>الأذكار</span>
-              <a href="#" style={{ fontSize: 11, color: EM, textDecoration: 'none', fontWeight: 600 }}>أذكار وأدعية</a>
+    <div className="page faith-page page--layout bg-gray-50 dark:bg-[#09090b]">
+      <PageLayout
+        mainClassName="faith-main-column w-full"
+        sidebarClassName="faith-desktop-sidebar hidden lg:block"
+        header={
+          error ? (
+            <div
+              className="flex items-center justify-between gap-3 p-3 mb-4 rounded-xl border"
+              style={{
+                background: 'rgba(244, 63, 94, 0.1)',
+                borderColor: 'rgba(244, 63, 94, 0.3)',
+              }}
+            >
+              <span className="text-xs text-[#F43F5E] font-medium">
+                ⚠️ {error}
+              </span>
+              <button
+                type="button"
+                onClick={loadData}
+                className="px-3 py-1 rounded-lg text-xs font-semibold transition-colors"
+                style={{
+                  background: 'rgba(244, 63, 94, 0.18)',
+                  borderColor: 'rgba(244, 63, 94, 0.4)',
+                  color: '#FDA4AF',
+                }}
+              >
+                {t('common.retry')}
+              </button>
             </div>
-            {/* Tab switcher */}
-            <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-              {[
-                { key: 'morning', label: 'أذكار الصباح', icon: '🌅' },
-                { key: 'evening', label: 'أذكار المساء', icon: '🌆' },
-              ].map(tab => (
-                <button
-                  key={tab.key}
-                  onClick={() => setAdhkarTab(tab.key)}
-                  style={{
-                    flex: 1, padding: '7px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600,
-                    cursor: 'pointer', fontFamily: 'var(--font-arabic)',
-                    background: adhkarTab === tab.key ? EM_BG : 'transparent',
-                    color: adhkarTab === tab.key ? EM : 'var(--color-text-muted)',
-                    border: `1px solid ${adhkarTab === tab.key ? EM_BD : 'var(--color-border)'}`,
-                    transition: 'all 150ms',
-                  }}
-                >
-                  {tab.icon} {tab.label}
-                </button>
-              ))}
-            </div>
+          ) : null
+        }
+        sidebar={
+          <div className="flex flex-col gap-6 w-full">
+            {/* Morning Adhkar Card */}
+            <AdhkarSummaryCard
+              type="morning"
+              icon="🌅"
+              title={t('faith.morningAdhkar')}
+              description={t('faith.morningAdhkarDescription')}
+              items={morningAdhkar}
+              onStart={() => navigate('/faith/adhkar?type=morning')}
+            />
 
-            {adhkarTab === 'morning' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {MORNING_ADHKAR.map(item => {
-                  const checked = morningDone.has(item.id)
-                  return (
-                    <button key={item.id} onClick={() => toggleMorning(item.id)} className={`faith-adhkar-item ${checked ? 'faith-adhkar-item--done' : ''}`}>
-                      <div className={`faith-adhkar-check ${checked ? 'faith-adhkar-check--done' : ''}`}>
-                        {checked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="20,6 9,17 4,12" /></svg>}
-                      </div>
-                      <span dir="rtl" style={{ flex: 1, textAlign: 'right', fontSize: 12, fontFamily: 'var(--font-arabic)', color: checked ? 'var(--color-text-muted)' : 'var(--color-text)', textDecoration: checked ? 'line-through' : 'none' }}>{item.text}</span>
-                      {item.count > 1 && <span style={{ fontSize: 10, color: 'var(--color-text-muted)', flexShrink: 0 }}>×{item.count}</span>}
-                    </button>
-                  )
-                })}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {EVENING_ADHKAR.map(item => {
-                  const checked = eveningDone.has(item.id)
-                  return (
-                    <button key={item.id} onClick={() => toggleEvening(item.id)} className={`faith-adhkar-item ${checked ? 'faith-adhkar-item--done' : ''}`}>
-                      <div className={`faith-adhkar-check ${checked ? 'faith-adhkar-check--done' : ''}`}>
-                        {checked && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="20,6 9,17 4,12" /></svg>}
-                      </div>
-                      <span dir="rtl" style={{ flex: 1, textAlign: 'right', fontSize: 12, fontFamily: 'var(--font-arabic)', color: checked ? 'var(--color-text-muted)' : 'var(--color-text)', textDecoration: checked ? 'line-through' : 'none' }}>{item.text}</span>
-                      {item.count > 1 && <span style={{ fontSize: 10, color: 'var(--color-text-muted)', flexShrink: 0 }}>×{item.count}</span>}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+            {/* Evening Adhkar Card */}
+            <AdhkarSummaryCard
+              type="evening"
+              icon="🌆"
+              title={t('faith.eveningAdhkar')}
+              description={t('faith.eveningAdhkarDescription')}
+              items={eveningAdhkar}
+              onStart={() => navigate('/faith/adhkar?type=evening')}
+            />
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-6 lg:gap-8 w-full">
+          {/* ── Minimalist Prayer Schedule ── */}
+          <PrayerScheduleCard
+            prayers={prayers}
+            now={now}
+            onToggleFard={toggleFard}
+            isExcused={isExcused}
+          />
+            {/* ── Hadith of the Day Card ── */}
+          <HadithCard hadith={hadithOfTheDay} />
+
+          <div className="mobile-adhkar flex flex-col gap-6 lg:hidden w-full">
+            {/* Morning Adhkar Card */}
+            <AdhkarSummaryCard
+              type="morning"
+              icon="🌅"
+              title={t('faith.morningAdhkar')}
+              description={t('faith.morningAdhkarDescription')}
+              items={morningAdhkar}
+              onStart={() => navigate('/faith/adhkar?type=morning')}
+            />
+
+            {/* Evening Adhkar Card */}
+            <AdhkarSummaryCard
+              type="evening"
+              icon="🌆"
+              title={t('faith.eveningAdhkar')}
+              description={t('faith.eveningAdhkarDescription')}
+              items={eveningAdhkar}
+              onStart={() => navigate('/faith/adhkar?type=evening')}
+            />
           </div>
 
-          {/* Hadith of the day */}
-          <HadithCard />
-
+          {/* ── Today's Deeds List ── */}
+          <TodayDeedsList
+            deeds={goodDeeds}
+            doneDeeds={doneDeeds}
+            onToggleDeed={toggleDeedItem}
+            isExcused={isExcused}
+          />
         </div>
-
-        {/* ═══ RIGHT 40% ═══ */}
-        <div className="faith-right">
-          {/* Khatmah tracker */}
-          <KhatmahTracker currentPage={khatmahPage} onUpdate={setKhatmahPage} />
-        </div>
-      </div>
-
-      {/* ═══ Bottom Center ═══ */}
-      <div className="faith-bottom-center">
-        {/* Today's Deeds */}
-        <TodayDeedsList
-          prayers={prayers}
-          toggleFard={toggleFard}
-          goodDeeds={goodDeeds}
-          toggleDeed={toggleDeed}
-          isExcused={isExcused}
-        />
-      </div>
+      </PageLayout>
     </div>
   )
 }

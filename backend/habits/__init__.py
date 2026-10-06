@@ -1,0 +1,3 @@
+"""
+Habits Django app package.
+"""

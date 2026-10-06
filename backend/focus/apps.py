@@ -1,0 +1,7 @@
+from django.apps import AppConfig
+
+
+class FocusConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "focus"
+    verbose_name = "Focus & Productivity"

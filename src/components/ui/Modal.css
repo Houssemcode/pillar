@@ -1,0 +1,219 @@
+/* ============================================================
+   Modal.css — Pillar Unified Modal / Bottom-Drawer System
+   Namespace: pil-modal  (isolated from legacy .task-modal / .habit-create-modal)
+
+   Two layouts, one component:
+   ≥ 768px  →  centered dialog with scale-in animation (handled by Framer)
+   < 768px  →  bottom sheet anchored to viewport bottom, slides up (Framer)
+
+   Z-index ladder (project reference):
+     FAB           100
+     Sidebar       200
+     Habit drawer 1000
+     pil-modal    1100   ← always on top
+   ============================================================ */
+
+/* ── Backdrop ──────────────────────────────────────────────── */
+.pil-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  /* Dark translucent layer with a soft blur to push content back */
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  /* Flex: centers the dialog on desktop; overridden on mobile */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1100;
+  /* Allow backdrop click events to pass through to the handler */
+  cursor: pointer;
+}
+
+/* ── Dialog container ──────────────────────────────────────── */
+.pil-modal__dialog {
+  /* Prevent backdrop click from bleeding through the panel */
+  cursor: default;
+  /* Surface */
+  background: var(--color-surface-2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.65),
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06); /* inner top sheen */
+  /* Sizing */
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Shape */
+  border-radius: var(--radius-xl);
+  /* Scroll behaviour */
+  overscroll-behavior: contain;
+  /* Layout */
+  display: flex;
+  flex-direction: column;
+  /* Theming */
+  transition: var(--transition-theme);
+  /* Scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.pil-modal__dialog::-webkit-scrollbar {
+  width: 4px;
+}
+
+.pil-modal__dialog::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pil-modal__dialog::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+/* Light mode */
+[data-theme="light"] .pil-modal__backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="light"] .pil-modal__dialog {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.18),
+    0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* ── Header ────────────────────────────────────────────────── */
+.pil-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 22px 18px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+.pil-modal__header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pil-modal__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.pil-modal__subtitle {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.pil-modal__close {
+  flex-shrink: 0;
+  margin-top: -4px; /* optically align with title baseline */
+}
+
+/* ── Body ──────────────────────────────────────────────────── */
+.pil-modal__body {
+  padding: 20px 22px;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Prevent content from sticking to the edge on small panels */
+  min-height: 0;
+}
+
+/* When there is no header, give body extra top room */
+.pil-modal__body:first-child {
+  padding-top: 24px;
+}
+
+/* ── Footer ────────────────────────────────────────────────── */
+.pil-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px 20px;
+  border-top: 1px solid var(--color-border-subtle);
+  flex-shrink: 0;
+}
+
+/* Spread children — useful for "Cancel | Confirm" pairs */
+.pil-modal__footer--spread {
+  justify-content: space-between;
+}
+
+/* ── Mobile — Bottom Sheet ─────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Backdrop: flush, no extra padding, aligns sheet to bottom */
+  .pil-modal__backdrop {
+    padding: 0;
+    align-items: flex-end;
+    justify-content: stretch;
+  }
+
+  /* Dialog becomes full-width bottom sheet */
+  .pil-modal__dialog {
+    max-width: 100%;
+    width: 100%;
+    max-height: 92dvh;       /* dvh respects on-screen keyboards */
+    /* Rounded only on top */
+    border-radius: 24px 24px 0 0;
+    border-bottom: none;
+    /* Safe-area padding — notch-safe bottom inset */
+    padding-bottom: env(safe-area-inset-bottom);
+    /* Remove side border for full-bleed sheet look */
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.09);
+  }
+
+  /* ── Drag-handle pill (pure CSS) ── */
+  /* Lives on ::before of the dialog so it always sits at the
+     very top, regardless of whether a Modal.Header is rendered. */
+  .pil-modal__dialog::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.18);
+    margin: 12px auto 0;
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+
+  [data-theme="light"] .pil-modal__dialog::before {
+    background: rgba(0, 0, 0, 0.15);
+  }
+
+  /* Give the header a touch of extra top padding to clear the handle */
+  .pil-modal__header {
+    padding-top: 16px;
+  }
+
+  /* Footer: respect safe-area in addition to padding-bottom on dialog */
+  .pil-modal__footer {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Prevent all direct children of modal body from vertically squishing in form layouts */
+.pil-modal__body > * {
+  flex-shrink: 0;
+}
+

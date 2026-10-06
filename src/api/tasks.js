@@ -1,15 +1,21 @@
-import client from './client'
+import tasksService from './tasksService'
 
 export const tasksApi = {
   // Tasks
-  list:   (params) => client.get('/api/tasks/', { params }).then(r => r.data.results ?? r.data),
-  create: (data)   => client.post('/api/tasks/', data).then(r => r.data),
-  update: (id, data) => client.patch(`/api/tasks/${id}/`, data).then(r => r.data),
-  remove: (id)     => client.delete(`/api/tasks/${id}/`),
+  list:       (params) => tasksService.getTasks(params),
+  create:     (data)   => tasksService.createTask(data),
+  update:     (id, data) => tasksService.updateTask(id, data),
+  toggle:     (id)     => tasksService.toggleTask(id),
+  remove:     (id, permanent = false) => tasksService.deleteTask(id, permanent),
+  restore:    (id)     => tasksService.restoreTask(id),
   // Lists
-  getLists:    ()       => client.get('/api/tasks/lists/').then(r => r.data.results ?? r.data),
-  createList:  (data)   => client.post('/api/tasks/lists/', data).then(r => r.data),
+  getLists:   (params) => tasksService.getLists(params),
+  createList: (data)   => tasksService.createList(data),
+  deleteList: (id)     => tasksService.deleteList(id),
   // Tags
-  getTags:     ()       => client.get('/api/tasks/tags/').then(r => r.data.results ?? r.data),
-  createTag:   (data)   => client.post('/api/tasks/tags/', data).then(r => r.data),
+  getTags:    ()       => tasksService.getTags(),
+  createTag:  (data)   => tasksService.createTag(data),
+  deleteTag:  (id)     => tasksService.deleteTag(id),
 }
+
+export default tasksApi

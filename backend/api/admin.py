@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from .models import (
     AdhkarLog,
+    CalendarEvent,
     FocusSession,
     GoodDeedLog,
     Habit,
@@ -21,10 +22,9 @@ for model in (
     TaskTag,
     Habit,
     HabitCompletion,
-    PrayerLog,
     AdhkarLog,
-    Khatmah,
     GoodDeedLog,
     FocusSession,
+    CalendarEvent,
 ):
     admin.site.register(model)

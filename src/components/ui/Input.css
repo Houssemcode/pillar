@@ -1,0 +1,232 @@
+/* ============================================================
+   Input.css — Pillar Unified Input System
+   Namespace: pil-input  (isolated from legacy .input)
+
+   Architecture: wrapper-first.
+   The outer .pil-input-wrap holds the border/focus ring so
+   leading/trailing icons sit *inside* the visual boundary,
+   producing a single cohesive control rather than floated icons.
+   ============================================================ */
+
+/* ── Wrapper — the visible "input box" ─────────────────────── */
+.pil-input-wrap {
+  /* Positioning context for absolute icon slots */
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  /* Surface */
+  background: var(--color-surface-3);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+
+  /* Smooth Chameleon-aware transitions */
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background-color var(--transition-fast),
+    var(--transition-theme);
+
+  /* Prevent any child from overflowing the rounded corners */
+  overflow: hidden;
+}
+
+/* Focus state — driven by :focus-within on the wrapper
+   so the ring appears whether the user clicks or tabs in */
+.pil-input-wrap:focus-within {
+  border-color: var(--color-primary);
+  /* Multi-layer glow: tight inner ring + soft outer halo */
+  box-shadow:
+    0 0 0 3px var(--color-primary-subtle),
+    0 1px 4px rgba(0, 0, 0, 0.18);
+  background: var(--color-surface-2);
+}
+
+/* Hover (when not already focused) */
+.pil-input-wrap:not(:focus-within):hover {
+  border-color: var(--color-text-muted);
+}
+
+/* Error state */
+.pil-input-wrap--error {
+  border-color: #F43F5E;
+  background: rgba(244, 63, 94, 0.04);
+}
+.pil-input-wrap--error:focus-within {
+  border-color: #F43F5E;
+  box-shadow:
+    0 0 0 3px rgba(244, 63, 94, 0.12),
+    0 1px 4px rgba(0, 0, 0, 0.14);
+}
+.pil-input-wrap--error:not(:focus-within):hover {
+  border-color: #F43F5E;
+}
+
+/* Disabled state */
+.pil-input-wrap--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Light mode */
+[data-theme="light"] .pil-input-wrap {
+  background: #ffffff;
+  border-color: var(--color-border);
+}
+[data-theme="light"] .pil-input-wrap:focus-within {
+  background: #ffffff;
+  box-shadow:
+    0 0 0 3px var(--color-primary-subtle),
+    0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Icon slots ─────────────────────────────────────────────── */
+.pil-input-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  /* Transition colour so icon picks up the focus state */
+  transition: color var(--transition-fast);
+  /* Don't consume pointer events — clicks pass through to input */
+  pointer-events: none;
+  user-select: none;
+}
+
+.pil-input-wrap:focus-within .pil-input-icon {
+  color: var(--color-primary);
+}
+
+.pil-input-icon--leading {
+  padding-left: 12px;
+}
+
+.pil-input-icon--trailing {
+  padding-right: 12px;
+  /* Trailing icon CAN be interactive (e.g., clear, password toggle) */
+  pointer-events: auto;
+  cursor: default;
+}
+
+/* Make trailing interactive icons tappable */
+.pil-input-icon--trailing:not(:empty) {
+  cursor: pointer;
+}
+
+/* ── Native <input> ─────────────────────────────────────────── */
+.pil-input {
+  /* Fill all remaining width between the icons */
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+
+  /* Wipe native browser chrome */
+  border: none;
+  outline: none;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+
+  /* Typography — inherit global font correctly */
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-text);
+  line-height: 1.5;
+
+  /* Base padding — icon-aware padding applied via modifier classes */
+  padding: 11px 14px;
+
+  /* Smooth caret colour */
+  caret-color: var(--color-primary);
+  transition: color var(--transition-fast), var(--transition-theme);
+}
+
+.pil-input::placeholder {
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+/* Reduce left padding when leading icon is present */
+.pil-input-wrap--has-leading .pil-input {
+  padding-left: 8px;
+}
+
+/* Reduce right padding when trailing icon is present */
+.pil-input-wrap--has-trailing .pil-input {
+  padding-right: 8px;
+}
+
+/* ── Sizes ──────────────────────────────────────────────────── */
+.pil-input-wrap--sm .pil-input {
+  padding-top: 7px;
+  padding-bottom: 7px;
+  font-size: 13px;
+}
+.pil-input-wrap--sm .pil-input-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.pil-input-wrap--lg .pil-input {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  font-size: 15px;
+}
+.pil-input-wrap--lg .pil-input-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── Error message ──────────────────────────────────────────── */
+.pil-input-error-msg {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  font-size: 12px;
+  color: #F43F5E;
+  font-family: var(--font-sans);
+}
+
+/* ── Label ──────────────────────────────────────────────────── */
+.pil-input-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  transition: color var(--transition-fast), var(--transition-theme);
+}
+
+/* Label turns accent on focus */
+.pil-input-group:focus-within .pil-input-label {
+  color: var(--color-primary);
+}
+
+/* ── Input group (label + wrap + error) ─────────────────────── */
+.pil-input-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .pil-input {
+    font-size: 16px; /* Prevents iOS from zooming in on focus */
+  }
+  .pil-input-wrap--sm .pil-input {
+    font-size: 15px;
+  }
+}
+
+/* Prevent inputs from squishing vertically in flex column layouts */
+.pil-input-group {
+  flex-shrink: 0;
+}
+

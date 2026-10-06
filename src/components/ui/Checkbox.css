@@ -1,0 +1,164 @@
+/* ============================================================
+   Checkbox.css — Pillar Unified Checkbox System
+   Namespace: pil-checkbox  (isolated from legacy .checkbox / .task-checkbox)
+
+   Pattern: the native <input type="checkbox"> is visually hidden
+   but stays in the a11y tree. A custom sibling <span> acts as the
+   visual box, driven purely by the adjacent-sibling CSS selectors
+   (:checked + .pil-checkbox__box) and a JS-injected data attribute
+   for the Framer Motion checkmark animation.
+   ============================================================ */
+
+/* ── Root wrapper ───────────────────────────────────────────── */
+.pil-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  /* Layout — stretches to label width */
+  width: fit-content;
+}
+
+.pil-checkbox--disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Hidden native input ────────────────────────────────────── */
+/* Visually hidden but fully accessible to screen readers and
+   keyboard navigation. Positioned over the custom box so the
+   click area perfectly aligns with the visual control. */
+.pil-checkbox__native {
+  position: absolute;
+  opacity: 0;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+/* ── Custom visual box ──────────────────────────────────────── */
+.pil-checkbox__box {
+  /* Sizing — matches the hidden native input exactly */
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  flex-shrink: 0;
+
+  /* Shape */
+  border-radius: 6px;
+  border: 1.75px solid var(--color-border);
+
+  /* Centre the SVG checkmark */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Surface */
+  background: transparent;
+
+  /* Chameleon-aware transitions */
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    var(--transition-theme);
+
+  /* Position relative so ::after focus ring layer works */
+  position: relative;
+}
+
+/* Hover — nudge border toward accent */
+.pil-checkbox:hover .pil-checkbox__box {
+  border-color: var(--color-primary-muted);
+  background: var(--color-primary-subtle);
+}
+
+/* Checked — fill with module accent colour */
+.pil-checkbox__native:checked + .pil-checkbox__box {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  /* Tight glow matching the Button/Input focus language */
+  box-shadow: 0 0 0 3px var(--color-primary-subtle);
+}
+
+/* ── Focus ring — keyboard navigation ──────────────────────── */
+/* :focus-visible on the *native* input + adjacent sibling
+   selector paints the ring on the custom box. */
+.pil-checkbox__native:focus-visible + .pil-checkbox__box {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+  border-color: var(--color-primary);
+}
+
+/* ── SVG checkmark ──────────────────────────────────────────── */
+.pil-checkbox__check {
+  /* Hidden by default — Framer Motion controls opacity + scale */
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* ── Label ──────────────────────────────────────────────────── */
+.pil-checkbox__label {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-text);
+  line-height: 1.4;
+  transition: color var(--transition-fast), var(--transition-theme);
+}
+
+.pil-checkbox--disabled .pil-checkbox__label {
+  color: var(--color-text-muted);
+}
+
+/* Checked label — muted to reinforce "done" state */
+.pil-checkbox--checked .pil-checkbox__label {
+  color: var(--color-text-secondary);
+}
+
+/* ── Size — sm ──────────────────────────────────────────────── */
+.pil-checkbox--sm .pil-checkbox__box {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border-radius: 4px;
+}
+.pil-checkbox--sm .pil-checkbox__native {
+  width: 16px;
+  height: 16px;
+}
+.pil-checkbox--sm .pil-checkbox__label {
+  font-size: 13px;
+}
+
+/* ── Size — lg ──────────────────────────────────────────────── */
+.pil-checkbox--lg .pil-checkbox__box {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 7px;
+}
+.pil-checkbox--lg .pil-checkbox__native {
+  width: 24px;
+  height: 24px;
+}
+.pil-checkbox--lg .pil-checkbox__label {
+  font-size: 15px;
+}
+
+/* ── Light mode ─────────────────────────────────────────────── */
+[data-theme="light"] .pil-checkbox__box {
+  background: #ffffff;
+  border-color: var(--color-border);
+}
+[data-theme="light"] .pil-checkbox:hover .pil-checkbox__box {
+  background: var(--color-primary-subtle);
+}
+[data-theme="light"] .pil-checkbox__native:checked + .pil-checkbox__box {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
