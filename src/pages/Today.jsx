@@ -36,6 +36,7 @@ import tasksService       from '../api/tasksService'
 import faithService       from '../api/faithService'
 import habitsService      from '../api/habitsService'
 import focusService       from '../api/focusService'
+import { calendarApi }    from '../api/calendar'
 import { formatTimeHHmm } from '../utils/timeUtils'
 
 /* ── Helpers ───────────────────────────────────────────────── */
@@ -47,8 +48,8 @@ function getGreeting(t) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   LOCALSTORAGE / MOCK ADAPTERS (HABITS, FOCUS, CALENDAR)
-   Cleanly separated until dedicated backends are completed
+   OFFLINE STORAGE ADAPTERS (HABITS & CALENDAR)
+   Used solely for offline fallback when network is unavailable
 ═══════════════════════════════════════════════════════════ */
 
 function getLocalHabitsData(todayIso) {
@@ -63,15 +64,7 @@ function getLocalHabitsData(todayIso) {
   } catch (e) {
     console.warn('[Today] Failed to read local habits:', e)
   }
-  return {
-    items: [
-      { id: 'h-1', name: 'Morning Walk', done: true, time: '07:30' },
-      { id: 'h-2', name: 'Read 20 pages', done: false, time: '20:30' },
-      { id: 'h-3', name: 'Hydration 2L', done: true, time: '13:00' },
-    ],
-    done: 2,
-    total: 3,
-  }
+  return { items: [], done: 0, total: 0 }
 }
 
 function getLocalCalendarData(todayIso) {
@@ -86,12 +79,7 @@ function getLocalCalendarData(todayIso) {
   } catch (e) {
     console.warn('[Today] Failed to read local calendar events:', e)
   }
-  return {
-    count: 1,
-    events: [
-      { id: 'cal-1', title: 'Team Standup', startTime: '10:30', allDay: false },
-    ],
-  }
+  return { count: 0, events: [] }
 }
 
 /* ── Skeleton strip for summary cards ─────────────────────── */
@@ -152,6 +140,7 @@ export default function Today() {
         habitsRes,
         focusStatsRes,
         focusTodayRes,
+        calendarRes,
       ] = await Promise.all([
         tasksService.getTasks({ due_today: 'true', is_completed: 'false', trash: 'false' }).catch(err => {
           console.warn('[Today] Error fetching active tasks:', err)
@@ -181,6 +170,10 @@ export default function Today() {
           console.warn('[Today] Error fetching today focus sessions:', err)
           return null
         }),
+        calendarApi.range(TODAY_ISO, TODAY_ISO).catch(err => {
+          console.warn('[Today] Error fetching calendar events:', err)
+          return []
+        }),
       ])
 
       const activeList = Array.isArray(activeTasksRes) ? activeTasksRes : (activeTasksRes?.results ?? [])
@@ -190,7 +183,7 @@ export default function Today() {
       setPrayers(Array.isArray(prayersRes) ? prayersRes : [])
       setHadithOfTheDay(hadithRes || null)
 
-      // Use backend habits if available, else fallback to local habits
+      // Use backend habits if available, else fallback to offline storage
       const habitsList = Array.isArray(habitsRes) ? habitsRes : (habitsRes?.results ?? [])
       if (habitsList.length > 0) {
         const done = habitsList.filter(h =>
@@ -204,6 +197,8 @@ export default function Today() {
           )
         ).length
         setHabitsState({ done, total: habitsList.length, items: habitsList })
+      } else if (Array.isArray(habitsRes)) {
+        setHabitsState({ done: 0, total: 0, items: [] })
       } else {
         setHabitsState(getLocalHabitsData(TODAY_ISO))
       }
@@ -224,7 +219,16 @@ export default function Today() {
       } else {
         setFocusState({ minutes: 0, sessionsCount: 0, sessions: [] })
       }
-      setCalendarState(getLocalCalendarData(TODAY_ISO))
+
+      // Reconcile calendar events directly from Django backend
+      const calList = Array.isArray(calendarRes) ? calendarRes : (calendarRes?.results ?? [])
+      if (calList && calList.length > 0) {
+        setCalendarState({ count: calList.length, events: calList })
+      } else if (Array.isArray(calendarRes)) {
+        setCalendarState({ count: 0, events: [] })
+      } else {
+        setCalendarState(getLocalCalendarData(TODAY_ISO))
+      }
     } catch (err) {
       console.error('[Today] Unexpected error loading dashboard:', err)
     } finally {
@@ -352,7 +356,7 @@ export default function Today() {
       })
     })
 
-    // 5. Calendar (cleanly separated local/mock data)
+    // 5. Calendar (real user events from backend)
     calendarState.events.forEach(e => {
       const calTime = e.allDay ? null : (e.startTime || e.time || null)
       const formattedCalTime = calTime ? formatTimeHHmm(calTime) : null
