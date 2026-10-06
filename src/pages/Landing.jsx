@@ -278,7 +278,7 @@ export default function Landing() {
 
       {/* ─── Footer ───────────────────────────────────────────────── */}
       <footer className="border-t border-gray-200 dark:border-zinc-800/80 py-6 sm:py-8 px-4 text-center text-xs text-gray-500 dark:text-gray-400">
-        <p>© {new Date().getFullYear()} Pillar. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} HOUSSEM Works. All rights reserved.</p>
       </footer>
     </div>
   )
