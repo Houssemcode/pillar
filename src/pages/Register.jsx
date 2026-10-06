@@ -19,7 +19,7 @@ export default function Register() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      navigate('/', { replace: true })
+      navigate('/today', { replace: true })
     }
   }, [user, navigate])
 
@@ -51,7 +51,7 @@ export default function Register() {
         password,
         password2,
       })
-      navigate('/', { replace: true })
+      navigate('/today', { replace: true })
     } catch (err) {
       const resp = err.response?.data
       if (resp?.detail) {

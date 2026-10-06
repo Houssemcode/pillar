@@ -15,7 +15,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const from = location.state?.from?.pathname || '/'
+  const from = location.state?.from?.pathname || '/today'
 
   // Redirect if already authenticated
   useEffect(() => {

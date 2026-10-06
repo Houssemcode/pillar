@@ -4,7 +4,7 @@ import { MODULE_THEMES } from '../../theme/moduleThemes'
 
 const NAV_ITEMS = [
   {
-    to: '/',
+    to: '/today',
     labelKey: 'nav.today',
     exact: true,
     icon: (
@@ -77,7 +77,7 @@ export default function BottomNav() {
   const location = useLocation()
 
   const isActive = (item) => {
-    if (item.exact) return location.pathname === '/'
+    if (item.exact) return location.pathname === '/today' || location.pathname === '/'
     return location.pathname.startsWith(item.to)
   }
 

@@ -24,6 +24,7 @@ function useOnlineStatus() {
 
 const PAGE_TITLE_KEYS = {
   '/': 'nav.today',
+  '/today': 'nav.today',
   '/tasks': 'nav.tasks',
   '/habits': 'nav.habits',
   '/calendar': 'nav.calendar',

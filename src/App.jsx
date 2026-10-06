@@ -10,6 +10,7 @@ import Habits from './pages/Habits'
 import Trash from './pages/Trash'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import Landing from './pages/Landing'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import { UserProvider, useUser, useSyncUserFromAuth } from './context/UserContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -81,7 +82,8 @@ function AppContent() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public Authentication Routes */}
+        {/* Public Routes */}
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
@@ -96,7 +98,7 @@ function AppContent() {
             </ProtectedRoute>
           }
         >
-          <Route path="/"            element={<Today />} />
+          <Route path="/today"       element={<Today />} />
           <Route path="/tasks"       element={<Tasks />} />
           <Route path="/habits"      element={<Habits />} />
           <Route path="/calendar"    element={<Calendar />} />
