@@ -3,7 +3,12 @@ import { useTranslation } from 'react-i18next'
 import Modal from '../ui/Modal'
 import Input from '../ui/Input'
 import Button from '../ui/Button'
-import { loadWledPrefs, saveWledPrefs, testWledConnection } from '../../hooks/useWled'
+import {
+  loadWledPrefs,
+  saveWledPrefs,
+  testWledConnection,
+  DEFAULT_COLORS,
+} from '../../hooks/useWled'
 
 /* ─── Inline Switch Component ──────────────────────────────── */
 function ToggleSwitch({ checked, onChange, label, description }) {
@@ -31,6 +36,62 @@ function ToggleSwitch({ checked, onChange, label, description }) {
         />
       </button>
     </label>
+  )
+}
+
+/* ─── Phase Color Customizer Component ─────────────────────── */
+function PhaseColorPicker({ label, icon, value, onChange, presets = [] }) {
+  return (
+    <div className="p-3 rounded-xl bg-white dark:bg-zinc-800/60 border border-gray-200/80 dark:border-zinc-700/80 space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-800 dark:text-gray-200">
+          <span>{icon}</span>
+          <span>{label}</span>
+        </div>
+
+        {/* Color picker button with live swatch */}
+        <label className="relative cursor-pointer flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-gray-300 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-900 hover:opacity-90 transition-opacity">
+          <span
+            className="w-4 h-4 rounded-full border border-black/15 dark:border-white/20 shadow-xs shrink-0"
+            style={{ backgroundColor: value }}
+          />
+          <span className="text-[11px] font-mono uppercase text-gray-700 dark:text-gray-300">
+            {value}
+          </span>
+          <input
+            type="color"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+          />
+        </label>
+      </div>
+
+      {/* Preset pills */}
+      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+        {presets.map((preset) => {
+          const isSelected = value?.toLowerCase() === preset.hex.toLowerCase()
+          return (
+            <button
+              key={preset.hex}
+              type="button"
+              onClick={() => onChange(preset.hex)}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] transition-all ${
+                isSelected
+                  ? 'ring-2 ring-emerald-500 bg-gray-100 dark:bg-zinc-700 text-gray-900 dark:text-white font-bold'
+                  : 'bg-gray-100/80 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-600 dark:text-gray-400'
+              }`}
+            >
+              <span
+                className="w-2 h-2 rounded-full border border-black/10 shadow-xs shrink-0"
+                style={{ backgroundColor: preset.hex }}
+              />
+              <span>{preset.name}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -64,14 +125,14 @@ function WledTestButton({ ip, ledCount, brightness, options }) {
           ) : (
             <>
               <span>⚡</span>
-              <span>اختبار الاتصال والمزامنة</span>
+              <span>اختبار الإضاءة والمزامنة</span>
             </>
           )}
         </button>
 
         {result && result.ok && (
           <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-            <span>✓</span> متصل بنجاح (أضاء الشريط بالأبيض الدافئ)
+            <span>✓</span> متصل بنجاح (أضاء الشريط بلون العمل المحدد)
           </span>
         )}
       </div>
@@ -84,6 +145,32 @@ function WledTestButton({ ip, ledCount, brightness, options }) {
     </div>
   )
 }
+
+/* ─── Color Presets Collections ────────────────────────────── */
+const WORK_PRESETS = [
+  { name: 'أبيض دافئ 2700K', hex: '#FFBE78' },
+  { name: 'شمعي كهرماني', hex: '#FFAA44' },
+  { name: 'أبيض طبيعي 3500K', hex: '#FFF0DC' },
+  { name: 'أبيض ناصع 6000K', hex: '#FFFFFF' },
+  { name: 'برتقالي هادئ', hex: '#FF7043' },
+  { name: 'أرجواني خافت', hex: '#AF52DE' },
+]
+
+const SHORT_BREAK_PRESETS = [
+  { name: 'أخضر زمردي', hex: '#00FF3C' },
+  { name: 'نعناعي منعش', hex: '#30D158' },
+  { name: 'فيروزي فاتح', hex: '#00D2D3' },
+  { name: 'أصفر مهدئ', hex: '#FFD60A' },
+  { name: 'ليموني', hex: '#A8E6CF' },
+]
+
+const LONG_BREAK_PRESETS = [
+  { name: 'أزرق كهربائي', hex: '#0078FF' },
+  { name: 'أزرق محيطي', hex: '#0984E3' },
+  { name: 'نيلي عميق', hex: '#5F27CD' },
+  { name: 'بنفسجي ملكي', hex: '#9B59B6' },
+  { name: 'وردي لطيف', hex: '#FF375F' },
+]
 
 /* ─── Main Modal Component ─────────────────────────────────── */
 export default function FocusSettingsModal({ isOpen, onClose, prefs, onSave }) {
@@ -110,6 +197,29 @@ export default function FocusSettingsModal({ isOpen, onClose, prefs, onSave }) {
 
   const patchWled = (patch) => setWled((prev) => ({ ...prev, ...patch }))
 
+  const patchColor = (phase, colorHex) => {
+    setWled((prev) => ({
+      ...prev,
+      colors: {
+        ...(prev.colors || DEFAULT_COLORS),
+        [phase]: colorHex,
+      },
+    }))
+  }
+
+  const resetColorsToDefault = () => {
+    setWled((prev) => ({
+      ...prev,
+      colors: { ...DEFAULT_COLORS },
+    }))
+  }
+
+  const currentColors = {
+    work: wled.colors?.work || DEFAULT_COLORS.work,
+    shortBreak: wled.colors?.shortBreak || DEFAULT_COLORS.shortBreak,
+    longBreak: wled.colors?.longBreak || DEFAULT_COLORS.longBreak,
+  }
+
   const handleSubmit = (e) => {
     e?.preventDefault()
     const p = Math.max(1, Math.min(180, Number(pomodoro) || 25))
@@ -125,6 +235,7 @@ export default function FocusSettingsModal({ isOpen, onClose, prefs, onSave }) {
       segmentId: Math.max(0, Math.min(15, Number(wled.segmentId) || 0)),
       hyperionSync: wled.hyperionSync !== false,
       hyperionIp: (wled.hyperionIp || '').trim(),
+      colors: currentColors,
     }
 
     saveWledPrefs(cleanWled)
@@ -303,28 +414,60 @@ export default function FocusSettingsModal({ isOpen, onClose, prefs, onSave }) {
                   </div>
                 </div>
 
-                {/* Phase Colors Legend (Warm White for Work) */}
-                <div className="pt-2 border-t border-gray-200/60 dark:border-zinc-800/80">
-                  <span className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2">
-                    ألوان المراحل التلقائية:
-                  </span>
-                  <div className="flex flex-wrap items-center gap-3 text-xs">
+                {/* ── Section 3: Phase Color Customization ── */}
+                <div className="pt-2 border-t border-gray-200/60 dark:border-zinc-800/80 space-y-3">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-3.5 h-3.5 rounded-full bg-[#FFBE78] border border-amber-300/40 shadow-sm" />
-                      <span className="text-gray-800 dark:text-gray-200 font-medium">العمل (أبيض دافئ 2700K)</span>
+                      <span className="text-base">🎨</span>
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">
+                        تخصيص ألوان المراحل (Phase Colors)
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3.5 h-3.5 rounded-full bg-[#00FF3C] shadow-sm" />
-                      <span className="text-gray-700 dark:text-gray-300">استراحة قصيرة (أخضر)</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-3.5 h-3.5 rounded-full bg-[#0078FF] shadow-sm" />
-                      <span className="text-gray-700 dark:text-gray-300">استراحة طويلة (أزرق)</span>
-                    </div>
+
+                    <button
+                      type="button"
+                      onClick={resetColorsToDefault}
+                      className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline font-medium"
+                    >
+                      استعادة الافتراضي
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    انقر على المربع لاختيار أي لون تريده من لوحة الألوان، أو اختر من الألوان الجاهزة:
+                  </p>
+
+                  <div className="space-y-2">
+                    {/* Work Color */}
+                    <PhaseColorPicker
+                      label="جلسة العمل (Work Session)"
+                      icon="🕯️"
+                      value={currentColors.work}
+                      onChange={(hex) => patchColor('work', hex)}
+                      presets={WORK_PRESETS}
+                    />
+
+                    {/* Short Break Color */}
+                    <PhaseColorPicker
+                      label="استراحة قصيرة (Short Break)"
+                      icon="🟢"
+                      value={currentColors.shortBreak}
+                      onChange={(hex) => patchColor('shortBreak', hex)}
+                      presets={SHORT_BREAK_PRESETS}
+                    />
+
+                    {/* Long Break Color */}
+                    <PhaseColorPicker
+                      label="استراحة طويلة (Long Break)"
+                      icon="🔵"
+                      value={currentColors.longBreak}
+                      onChange={(hex) => patchColor('longBreak', hex)}
+                      presets={LONG_BREAK_PRESETS}
+                    />
                   </div>
                 </div>
 
-                {/* ── Section 3: Hyperion Ambilight Synchronization ── */}
+                {/* ── Section 4: Hyperion Ambilight Synchronization ── */}
                 <div className="pt-3 border-t border-gray-200/60 dark:border-zinc-800/80 space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="text-base">🌈</span>
@@ -345,7 +488,7 @@ export default function FocusSettingsModal({ isOpen, onClose, prefs, onSave }) {
                       <div className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed">
                         ✨ <strong>آلية التزامن التلقائي (Live Hand-off):</strong>
                         <ul className="list-disc list-inside mt-1 space-y-1 text-gray-500 dark:text-gray-400">
-                          <li><strong>أثناء تشغيل المؤقت:</strong> يتوقف بث Hyperion مؤقتاً لعرض المؤقت بالأبيض الدافئ.</li>
+                          <li><strong>أثناء تشغيل المؤقت:</strong> يتوقف بث Hyperion مؤقتاً لعرض المؤقت بلون العمل المخصص.</li>
                           <li><strong>عند الإيقاف المؤقت أو انتهاء الجلسة:</strong> يستأنف Hyperion فوراً إضاءته التفاعلية على الشريط دون إطفاء.</li>
                         </ul>
                       </div>
@@ -394,6 +537,7 @@ export default function FocusSettingsModal({ isOpen, onClose, prefs, onSave }) {
                     segmentId: wled.segmentId,
                     hyperionSync: wled.hyperionSync,
                     hyperionIp: wled.hyperionIp,
+                    colors: currentColors,
                   }}
                 />
 

@@ -1,20 +1,21 @@
 /**
  * useWled — WLED HTTP / JSON API integration for Pomodoro LED strip progress bar
- * with Hyperion Ambilight seamless co-existence and synchronization.
+ * with customizable colors per phase, and Hyperion Ambilight seamless co-existence.
  *
  * Designed for ESP32 / ESP8266 running WLED firmware, co-existing with Hyperion.
  *
- * Behavior:
- *  • Work session: Warm White (~2700K-3000K, soft and calming for focus)
- *  • Short break: Emerald Green countdown
- *  • Long break: Electric Blue countdown
- *  • Hyperion synchronization:
- *      - While timer runs: WLED uses `lor: 1` (Live Override) so the timer displays smoothly
- *        without being overwritten by Hyperion's UDP stream.
- *      - When timer pauses/finishes: WLED uses `lor: 0` (Release Override) so Hyperion
- *        seamlessly and immediately resumes ambient lighting without turning off the LEDs!
- *      - Supports dedicated Segment ID (e.g. Segment 1 for timer, Segment 0 for Hyperion).
- *      - Optional Hyperion JSON-RPC API integration for direct component control.
+ * Customizable Colors:
+ *  • Work session: Customizable (Default: Warm White #FFBE78 ~2700K)
+ *  • Short break:  Customizable (Default: Emerald Green #00FF3C)
+ *  • Long break:   Customizable (Default: Electric Blue #0078FF)
+ *
+ * Hyperion synchronization:
+ *  • While timer runs: WLED uses `lor: 1` (Live Override) so the timer displays smoothly
+ *    without being overwritten by Hyperion's UDP stream.
+ *  • When timer pauses/finishes: WLED uses `lor: 0` (Release Override) so Hyperion
+ *    seamlessly and immediately resumes ambient lighting without turning off the LEDs!
+ *  • Supports dedicated Segment ID (e.g. Segment 1 for timer, Segment 0 for Hyperion).
+ *  • Optional Hyperion JSON-RPC API integration for direct component control.
  *
  * Settings are persisted in localStorage under 'pillar_wled_prefs'.
  */
@@ -23,6 +24,12 @@ import { useRef, useEffect, useCallback, useMemo } from 'react'
 
 /* ─── Defaults & Storage ────────────────────────────────────── */
 const STORAGE_KEY = 'pillar_wled_prefs'
+
+export const DEFAULT_COLORS = {
+  work: '#FFBE78',       // Warm White (~2700K)
+  shortBreak: '#00FF3C', // Emerald Green
+  longBreak: '#0078FF',  // Electric Blue
+}
 
 export const WLED_DEFAULTS = {
   enabled: false,
@@ -33,39 +40,80 @@ export const WLED_DEFAULTS = {
   segmentId: 0,      // WLED segment index (0 by default)
   hyperionSync: true,// Seamless handoff with Hyperion
   hyperionIp: '',    // Optional Hyperion IP:port (e.g. 192.168.1.50:8090)
+  colors: { ...DEFAULT_COLORS },
 }
 
 export function loadWledPrefs() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) return { ...WLED_DEFAULTS, ...JSON.parse(saved) }
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      return {
+        ...WLED_DEFAULTS,
+        ...parsed,
+        colors: {
+          ...DEFAULT_COLORS,
+          ...(parsed.colors || {}),
+        },
+      }
+    }
   } catch {}
   return { ...WLED_DEFAULTS }
 }
 
 export function saveWledPrefs(prefs) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...WLED_DEFAULTS, ...prefs }))
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      ...WLED_DEFAULTS,
+      ...prefs,
+      colors: {
+        ...DEFAULT_COLORS,
+        ...(prefs?.colors || {}),
+      },
+    }))
   } catch {}
 }
 
-/* ─── Phase Colors (RGB arrays for WLED) ────────────────────── */
-export const PHASE_COLORS = {
-  work:       [255, 190, 120],  // Warm White (~2700K-3000K أبيض دافئ مريح للتركيز)
-  shortBreak: [0,   255, 60],   // Emerald Green
-  longBreak:  [0,   120, 255],  // Electric Blue
+/* ─── Color Helpers & Phase Mappings ───────────────────────── */
+export function hexToRgb(hex) {
+  if (Array.isArray(hex)) return hex
+  if (!hex || typeof hex !== 'string') return [255, 190, 120]
+  const clean = hex.replace('#', '').trim()
+  if (clean.length === 3) {
+    const r = parseInt(clean[0] + clean[0], 16)
+    const g = parseInt(clean[1] + clean[1], 16)
+    const b = parseInt(clean[2] + clean[2], 16)
+    return [r, g, b]
+  }
+  const num = parseInt(clean, 16)
+  if (isNaN(num)) return [255, 190, 120]
+  const r = (num >> 16) & 255
+  const g = (num >> 8) & 255
+  const b = num & 255
+  return [r, g, b]
+}
+
+export function rgbToHex(rgb) {
+  if (typeof rgb === 'string') {
+    return rgb.startsWith('#') ? rgb.slice(1).toUpperCase() : rgb.toUpperCase()
+  }
+  if (!Array.isArray(rgb) || rgb.length < 3) return 'FFBE78'
+  const [r, g, b] = rgb
+  return ((1 << 24) + ((r & 255) << 16) + ((g & 255) << 8) + (b & 255))
+    .toString(16)
+    .slice(1)
+    .toUpperCase()
+}
+
+export function getPhaseColor(phase, prefsColors = {}) {
+  const hex = prefsColors?.[phase] || DEFAULT_COLORS[phase] || '#FFBE78'
+  return hexToRgb(hex)
 }
 
 function modeToPhase(modeKey) {
   if (modeKey === 'short')  return 'shortBreak'
   if (modeKey === 'long')   return 'longBreak'
   return 'work'
-}
-
-function rgbToHex(rgb) {
-  if (typeof rgb === 'string') return rgb.replace('#', '')
-  const [r, g, b] = rgb
-  return ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()
 }
 
 /* ─── WLED API Helpers ──────────────────────────────────────── */
@@ -224,6 +272,10 @@ export async function testWledConnection(ip, ledCount, brightness, options = {})
   const bri = Math.max(10, Math.min(255, Number(brightness) || 128))
   const segId = Number(options.segmentId) || 0
 
+  // Use customized work color for testing
+  const testColor = getPhaseColor('work', options.colors)
+  const testHex = rgbToHex(testColor)
+
   try {
     const url = buildUrl(ip)
     const res = await fetch(url, {
@@ -239,8 +291,8 @@ export async function testWledConnection(ip, ledCount, brightness, options = {})
             start: 0,
             stop: count,
             fx: 0,
-            col: [[255, 190, 120]], // Warm white
-            i: [0, count, 'FFBE78'],
+            col: [testColor],
+            i: [0, count, testHex],
           },
         ],
       }),
@@ -251,12 +303,12 @@ export async function testWledConnection(ip, ledCount, brightness, options = {})
       throw new Error(`HTTP ${res.status}`)
     }
 
-    // Keep lit warm white for 2.5 seconds then hand back to Hyperion / standby
+    // Keep lit for 2.5 seconds then hand back to Hyperion / standby
     setTimeout(() => {
       wledOff(ip, options)
     }, 2500)
 
-    return { ok: true }
+    return { ok: true, colorHex: testHex }
   } catch (err) {
     const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:'
     let errorMsg = 'تعذر الاتصال بالـ ESP32.'
@@ -275,7 +327,7 @@ export async function testWledConnection(ip, ledCount, brightness, options = {})
 
 /* ─── Hook ──────────────────────────────────────────────────── */
 /**
- * @param {object} prefs - { enabled, ip, ledCount, brightness, mode, segmentId, hyperionSync, hyperionIp }
+ * @param {object} prefs - { enabled, ip, ledCount, brightness, mode, segmentId, hyperionSync, hyperionIp, colors }
  * @param {Array} modes  - modes list from Focus.jsx
  */
 export function useWled(prefs, modes) {
@@ -308,7 +360,7 @@ export function useWled(prefs, modes) {
     if (!currentMode || currentMode.duration <= 0) return // skip stopwatch
 
     const phase = modeToPhase(currentMode.key)
-    const color = PHASE_COLORS[phase]
+    const color = getPhaseColor(phase, p.colors)
     const totalSecs = currentMode.duration
     const ledCount = Number(p.ledCount) || 86
 
@@ -341,7 +393,7 @@ export function useWled(prefs, modes) {
     if (!currentMode || currentMode.duration <= 0) return
 
     const phase = modeToPhase(currentMode.key)
-    const color = PHASE_COLORS[phase]
+    const color = getPhaseColor(phase, p.colors)
     const ledCount = Number(p.ledCount) || 86
 
     const ledsLit = p.mode === 'fill' ? 1 : ledCount
@@ -364,7 +416,7 @@ export function useWled(prefs, modes) {
     if (!p?.enabled || !p?.ip || !Number(p?.ledCount)) return
 
     const phase = modeToPhase(modeKey)
-    const color = PHASE_COLORS[phase]
+    const color = getPhaseColor(phase, p.colors)
     const ledCount = Number(p.ledCount) || 86
     lastSentLitRef.current = -1
     wledComplete(p.ip, ledCount, color, p.brightness, p)
