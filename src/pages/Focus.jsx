@@ -324,7 +324,7 @@ export default function Focus() {
       : 'pomodoro'
 
     // Fire WLED completion flash + breathe alert
-    wled.onComplete(currentMode.key)
+    wledRef.current.onComplete(currentMode.key)
 
     const now = new Date()
     const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`
@@ -375,7 +375,7 @@ export default function Focus() {
     } else {
       toastFocus?.(t('focus.breakOverToast'), '')
     }
-  }, [loadFocusData, pomodoros, toastFocus, toastStreak, t, wled])
+  }, [loadFocusData, pomodoros, toastFocus, toastStreak, t])
 
   /* ── Handle Stopwatch Stop/Completion ── */
   const handleStopwatchComplete = useCallback(async () => {
@@ -421,20 +421,23 @@ export default function Focus() {
     toastFocus?.(t('focus.sessionDoneToast'), currentTaskText ? `"${currentTaskText}"` : '')
   }, [stopwatchSeconds, loadFocusData, toastFocus, t])
 
+  /* ── Stable ref for WLED to prevent timer restarts ── */
+  const wledRef = useRef(wled)
+  useEffect(() => { wledRef.current = wled }, [wled])
+
   /* ── Universal Timer Tick (Handles both count-down and count-up) ── */
   useEffect(() => {
     if (!running) {
       clearInterval(intervalRef.current)
-      wled.onPause()
+      wledRef.current.onPause()
       return
     }
 
+    // Light WLED strip ONLY once when timer starts
     if (!startedAtRef.current) {
       startedAtRef.current = new Date().toISOString()
+      wledRef.current.onStart(mode)
     }
-
-    // Light WLED strip immediately upon timer starting
-    wled.onStart(mode)
 
     if (mode === 4) {
       // Stopwatch: count UP
@@ -450,20 +453,20 @@ export default function Focus() {
             return 0
           }
           const next = prev - 1
-          wled.onTick(modeRef.current, next)
+          wledRef.current.onTick(modeRef.current, next)
           return next
         })
       }, 1000)
     }
 
     return () => clearInterval(intervalRef.current)
-  }, [running, mode, handleComplete, wled])
+  }, [running, mode, handleComplete])
 
   /* ── Mode switching & reset ── */
   const switchMode = (idx) => {
     setMode(idx)
     setRunning(false)
-    wled.onPause()
+    wledRef.current.onPause()
     startedAtRef.current = null
     if (idx === 4) {
       setStopwatchSeconds(0)
@@ -476,7 +479,7 @@ export default function Focus() {
 
   const reset = () => {
     setRunning(false)
-    wled.onPause()
+    wledRef.current.onPause()
     startedAtRef.current = null
     if (mode === 4) {
       setStopwatchSeconds(0)

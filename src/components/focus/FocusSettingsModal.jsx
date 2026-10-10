@@ -329,11 +329,21 @@ export default function FocusSettingsModal({ isOpen, onClose, prefs, onSave }) {
                 />
 
                 {/* CORS Note */}
-                <div className="text-[11px] text-gray-500 dark:text-gray-400 leading-normal p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
-                  💡 <strong>ملاحظة:</strong> تأكد من تفعيل CORS في صفحة WLED:
-                  <code className="mx-1 px-1 py-0.5 rounded bg-gray-200 dark:bg-zinc-800 text-[10px]">
-                    Settings → Security → Allow CORS: ✓
-                  </code>
+                <div className="text-[11px] text-gray-500 dark:text-gray-400 leading-normal p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10 space-y-1.5">
+                  <div>
+                    💡 <strong>معدل التناقص:</strong> ينطفئ مصباح واحد كل <code>(مدة الجلسة ÷ عدد المصابيح)</code> ثانية (مثلاً: في جلسة 25 دقيقة مع 86 مصباح، ينطفئ مصباح كل ~17.5 ثانية).
+                  </div>
+                  <div>
+                    🔒 <strong>تفعيل CORS في WLED:</strong>{' '}
+                    <code className="px-1 py-0.5 rounded bg-gray-200 dark:bg-zinc-800 text-[10px]">
+                      Settings → Security → Allow CORS: ✓
+                    </code>
+                  </div>
+                  {typeof window !== 'undefined' && window.location.protocol === 'https:' && (
+                    <div className="text-amber-600 dark:text-amber-400 font-medium pt-1 border-t border-amber-500/20">
+                      ⚠️ <strong>تنبيه المتصفح (HTTPS):</strong> عند استخدام الموقع عبر Vercel (https)، قد يحجب المتصفح الاتصال بالشبكة المحلية (Mixed Content). للسماح به: اضغط على أيقونة القفل بجانب الرابط ← Site settings ← Insecure content: Allow.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
