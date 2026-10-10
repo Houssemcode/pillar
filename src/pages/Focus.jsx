@@ -161,7 +161,6 @@ export default function Focus() {
 
   // Pro settings state
   const [prefs, setPrefs] = useState(loadFocusPrefs)
-  const [wledPrefs, setWledPrefs] = useState(loadWledPrefs)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isFullScreen, setIsFullScreen] = useState(false)
   const containerRef = useRef(null)
@@ -209,7 +208,8 @@ export default function Focus() {
   useEffect(() => { modeRef.current = mode }, [mode])
   useEffect(() => { modesRef.current = modes }, [modes])
 
-  /* ── WLED LED Integration ── */
+  /* ── WLED Smart LED Strip Integration ── */
+  const [wledPrefs, setWledPrefs] = useState(loadWledPrefs)
   const wled = useWled(wledPrefs, modes)
 
   /* ── Fullscreen API Synchronization ── */
@@ -242,7 +242,6 @@ export default function Focus() {
     const { wled: newWled, ...timerPrefs } = newPrefs
     setPrefs(timerPrefs)
     localStorage.setItem('pillar_focus_prefs', JSON.stringify(timerPrefs))
-    // Also sync WLED prefs into local state (already persisted by the modal)
     if (newWled) setWledPrefs(newWled)
     // If timer is idle, immediately update duration for active standard mode
     if (!running) {
@@ -324,7 +323,7 @@ export default function Focus() {
       ? 'long_break'
       : 'pomodoro'
 
-    // Fire WLED completion flash + breathe effect
+    // Fire WLED completion flash + breathe alert
     wled.onComplete(currentMode.key)
 
     const now = new Date()
@@ -434,16 +433,16 @@ export default function Focus() {
       startedAtRef.current = new Date().toISOString()
     }
 
-    // Signal WLED to light the first LED immediately on start
+    // Light WLED strip immediately upon timer starting
     wled.onStart(mode)
 
     if (mode === 4) {
-      // Stopwatch: count UP — no WLED progress (duration unknown)
+      // Stopwatch: count UP
       intervalRef.current = setInterval(() => {
         setStopwatchSeconds(prev => prev + 1)
       }, 1000)
     } else {
-      // Countdown: count DOWN + send WLED progress each tick
+      // Countdown: count DOWN & sync WLED progress
       intervalRef.current = setInterval(() => {
         setSecondsLeft(prev => {
           if (prev <= 1) {
@@ -464,6 +463,7 @@ export default function Focus() {
   const switchMode = (idx) => {
     setMode(idx)
     setRunning(false)
+    wled.onPause()
     startedAtRef.current = null
     if (idx === 4) {
       setStopwatchSeconds(0)
@@ -476,6 +476,7 @@ export default function Focus() {
 
   const reset = () => {
     setRunning(false)
+    wled.onPause()
     startedAtRef.current = null
     if (mode === 4) {
       setStopwatchSeconds(0)
@@ -549,11 +550,11 @@ export default function Focus() {
               </div>
               {wled.isActive && (
                 <div
-                  title={`WLED connected · ${wledPrefs.ledCount} LEDs`}
+                  title={`WLED Connected · ${wledPrefs.ip} · ${wledPrefs.ledCount} LEDs`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 5,
+                    gap: 6,
                     padding: '3px 10px',
                     borderRadius: 20,
                     background: 'rgba(16,185,129,.12)',
@@ -564,13 +565,17 @@ export default function Focus() {
                     userSelect: 'none',
                   }}
                 >
-                  <span style={{
-                    width: 7, height: 7, borderRadius: '50%',
-                    background: '#10b981',
-                    boxShadow: '0 0 6px #10b981',
-                    animation: running ? 'pulse 1.5s infinite' : 'none',
-                  }} />
-                  LED
+                  <span
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      background: '#10b981',
+                      boxShadow: '0 0 6px #10b981',
+                      animation: running ? 'pulse 1.5s infinite' : 'none',
+                    }}
+                  />
+                  <span>WLED ({wledPrefs.ledCount} LEDs)</span>
                 </div>
               )}
             </div>

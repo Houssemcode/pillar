@@ -3,301 +3,338 @@ import { useTranslation } from 'react-i18next'
 import Modal from '../ui/Modal'
 import Input from '../ui/Input'
 import Button from '../ui/Button'
-import { loadWledPrefs, saveWledPrefs } from '../../hooks/useWled'
+import { loadWledPrefs, saveWledPrefs, testWledConnection } from '../../hooks/useWled'
 
-/* ─── Small toggle switch ──────────────────────────────────── */
-function Toggle({ checked, onChange, label }) {
+/* ─── Inline Switch Component ──────────────────────────────── */
+function ToggleSwitch({ checked, onChange, label, description }) {
   return (
-    <label
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        cursor: 'pointer',
-        userSelect: 'none',
-      }}
-    >
-      <div
+    <label className="flex items-start justify-between gap-4 cursor-pointer select-none">
+      <div className="flex flex-col">
+        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{label}</span>
+        {description && (
+          <span className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{description}</span>
+        )}
+      </div>
+      <button
+        type="button"
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
-        style={{
-          position: 'relative',
-          width: 40,
-          height: 22,
-          borderRadius: 11,
-          background: checked ? 'var(--color-primary)' : 'var(--color-border)',
-          transition: 'background 200ms',
-          cursor: 'pointer',
-          flexShrink: 0,
-        }}
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+          checked ? 'bg-emerald-600' : 'bg-gray-300 dark:bg-zinc-700'
+        }`}
       >
         <span
-          style={{
-            position: 'absolute',
-            top: 3,
-            left: checked ? 21 : 3,
-            width: 16,
-            height: 16,
-            borderRadius: '50%',
-            background: '#fff',
-            boxShadow: '0 1px 3px rgba(0,0,0,.25)',
-            transition: 'left 200ms',
-          }}
+          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+            checked ? 'translate-x-6' : 'translate-x-1'
+          }`}
         />
-      </div>
-      <span style={{ fontSize: 13, color: 'var(--color-text-primary)' }}>{label}</span>
+      </button>
     </label>
   )
 }
 
-/* ─── WLED test button ─────────────────────────────────────── */
+/* ─── WLED Test Connection Button ──────────────────────────── */
 function WledTestButton({ ip, ledCount, brightness }) {
-  const [status, setStatus] = useState(null) // null | 'ok' | 'err'
-  const [busy, setBusy] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState(null) // null | { ok: true } | { ok: false, error: string }
 
-  async function test() {
-    if (!ip) { setStatus('err'); return }
-    setBusy(true)
-    setStatus(null)
-    try {
-      const host = ip.startsWith('http') ? ip : `http://${ip}`
-      const res = await fetch(`${host.replace(/\/$/, '')}/json/state`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          on: true,
-          bri: brightness,
-          seg: [{ id: 0, start: 0, stop: ledCount, fx: 0, col: [[0, 200, 80]] }],
-        }),
-        signal: AbortSignal.timeout(2500),
-      })
-      setStatus(res.ok || res.status === 0 ? 'ok' : 'err')
-    } catch {
-      setStatus('err')
-    } finally {
-      setBusy(false)
-    }
-    // Auto-clear after 4s
-    setTimeout(() => setStatus(null), 4000)
+  const handleTest = async () => {
+    setLoading(true)
+    setResult(null)
+    const res = await testWledConnection(ip, ledCount, brightness)
+    setLoading(false)
+    setResult(res)
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-      <button
-        type="button"
-        onClick={test}
-        disabled={busy || !ip}
-        style={{
-          padding: '6px 14px',
-          borderRadius: 8,
-          border: '1px solid var(--color-border)',
-          background: 'var(--color-surface-2)',
-          color: 'var(--color-text-primary)',
-          fontSize: 12,
-          fontWeight: 500,
-          cursor: ip && !busy ? 'pointer' : 'not-allowed',
-          opacity: ip ? 1 : 0.4,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          transition: 'opacity .15s',
-        }}
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-          <polyline points="22 4 12 14.01 9 11.01"/>
-        </svg>
-        {busy ? 'Testing…' : 'Test Connection'}
-      </button>
-      {status === 'ok' && (
-        <span style={{ fontSize: 12, color: 'var(--color-success, #10b981)', fontWeight: 500 }}>
-          ✓ Connected — LEDs lit green
-        </span>
-      )}
-      {status === 'err' && (
-        <span style={{ fontSize: 12, color: 'var(--color-danger, #ef4444)', fontWeight: 500 }}>
-          ✗ Unreachable
-        </span>
+    <div className="flex flex-col gap-2 pt-1">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={handleTest}
+          disabled={loading || !ip?.trim()}
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 hover:bg-gray-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-zinc-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <>
+              <span className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              <span>جاري الفحص...</span>
+            </>
+          ) : (
+            <>
+              <span>⚡</span>
+              <span>اختبار الاتصال بالـ ESP32</span>
+            </>
+          )}
+        </button>
+
+        {result && result.ok && (
+          <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+            <span>✓</span> متصل بنجاح (أضاء الشريط بالأخضر)
+          </span>
+        )}
+      </div>
+
+      {result && !result.ok && (
+        <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-xs text-rose-700 dark:text-rose-300 leading-relaxed">
+          <strong>فشل الاتصال:</strong> {result.error}
+        </div>
       )}
     </div>
   )
 }
 
-/* ─── Main Modal ───────────────────────────────────────────── */
+/* ─── Main Modal Component ─────────────────────────────────── */
 export default function FocusSettingsModal({ isOpen, onClose, prefs, onSave }) {
   const { t } = useTranslation()
 
-  // Timer prefs
-  const [pomodoro,   setPomodoro]   = useState(prefs?.pomodoro    ?? 25)
+  // Standard timer durations
+  const [pomodoro, setPomodoro] = useState(prefs?.pomodoro ?? 25)
   const [shortBreak, setShortBreak] = useState(prefs?.short_break ?? 5)
-  const [longBreak,  setLongBreak]  = useState(prefs?.long_break  ?? 15)
+  const [longBreak, setLongBreak] = useState(prefs?.long_break ?? 15)
 
-  // WLED prefs
+  // WLED settings
   const [wled, setWled] = useState(loadWledPrefs)
 
   useEffect(() => {
-    if (isOpen && prefs) {
-      setPomodoro(prefs.pomodoro    ?? 25)
-      setShortBreak(prefs.short_break ?? 5)
-      setLongBreak(prefs.long_break  ?? 15)
+    if (isOpen) {
+      if (prefs) {
+        setPomodoro(prefs.pomodoro ?? 25)
+        setShortBreak(prefs.short_break ?? 5)
+        setLongBreak(prefs.long_break ?? 15)
+      }
       setWled(loadWledPrefs())
     }
   }, [isOpen, prefs])
 
-  const patchWled = (patch) => setWled(prev => ({ ...prev, ...patch }))
+  const patchWled = (patch) => setWled((prev) => ({ ...prev, ...patch }))
 
   const handleSubmit = (e) => {
     e?.preventDefault()
-    const p = Math.max(1, Math.min(180, Number(pomodoro)   || 25))
-    const s = Math.max(1, Math.min(60,  Number(shortBreak) || 5))
-    const l = Math.max(1, Math.min(90,  Number(longBreak)  || 15))
+    const p = Math.max(1, Math.min(180, Number(pomodoro) || 25))
+    const s = Math.max(1, Math.min(60, Number(shortBreak) || 5))
+    const l = Math.max(1, Math.min(90, Number(longBreak) || 15))
 
-    // Validate & clamp WLED settings
     const cleanWled = {
-      enabled:    wled.enabled,
-      ip:         wled.ip.trim(),
-      ledCount:   Math.max(1, Math.min(1000, Number(wled.ledCount)   || 30)),
-      brightness: Math.max(10, Math.min(255, Number(wled.brightness) || 128)),
+      enabled: Boolean(wled.enabled),
+      ip: (wled.ip || '').trim(),
+      ledCount: Math.max(1, Math.min(2000, Number(wled.ledCount) || 86)),
+      brightness: Math.max(5, Math.min(255, Number(wled.brightness) || 128)),
+      mode: wled.mode === 'fill' ? 'fill' : 'countdown',
     }
+
     saveWledPrefs(cleanWled)
 
-    onSave({ pomodoro: p, short_break: s, long_break: l, wled: cleanWled })
+    onSave({
+      pomodoro: p,
+      short_break: s,
+      long_break: l,
+      wled: cleanWled,
+    })
     onClose()
   }
 
-  const dividerStyle = {
-    borderTop: '1px solid var(--color-border)',
-    margin: '4px 0',
-    paddingTop: 16,
-  }
-
-  const labelStyle = {
-    fontSize: 12,
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-    color: 'var(--color-text-muted)',
-    marginBottom: 6,
-    display: 'block',
-  }
-
   return (
-    <Modal isOpen={isOpen} onClose={onClose} className="focus-settings-modal">
+    <Modal isOpen={isOpen} onClose={onClose} className="focus-settings-modal max-w-lg">
       <Modal.Header title={t('focus.settings')} />
       <form onSubmit={handleSubmit}>
-        <Modal.Body style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <Modal.Body className="space-y-6 max-h-[75vh] overflow-y-auto px-1">
+          {/* ── Section 1: Timer Durations ── */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              مدد المؤقت (دقائق)
+            </h4>
 
-          {/* ── Timer Durations ── */}
-          <div>
-            <label className="section-label" style={{ marginBottom: 6, display: 'block' }}>
-              {t('focus.pomodoroDuration')}
-            </label>
-            <Input type="number" min="1" max="180" value={pomodoro}
-              onChange={e => setPomodoro(e.target.value)} required />
-          </div>
-          <div>
-            <label className="section-label" style={{ marginBottom: 6, display: 'block' }}>
-              {t('focus.shortBreakDuration')}
-            </label>
-            <Input type="number" min="1" max="60" value={shortBreak}
-              onChange={e => setShortBreak(e.target.value)} required />
-          </div>
-          <div>
-            <label className="section-label" style={{ marginBottom: 6, display: 'block' }}>
-              {t('focus.longBreakDuration')}
-            </label>
-            <Input type="number" min="1" max="90" value={longBreak}
-              onChange={e => setLongBreak(e.target.value)} required />
-          </div>
-
-          {/* ── WLED Section ── */}
-          <div style={dividerStyle}>
-            {/* Section header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-                stroke="var(--color-primary)" strokeWidth="2" strokeLinecap="round">
-                <circle cx="12" cy="12" r="5"/>
-                <line x1="12" y1="1" x2="12" y2="3"/>
-                <line x1="12" y1="21" x2="12" y2="23"/>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="1" y1="12" x2="3" y2="12"/>
-                <line x1="21" y1="12" x2="23" y2="12"/>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-              </svg>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                LED Strip (WLED)
-              </span>
+            <div>
+              <label className="section-label mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                {t('focus.pomodoroDuration')}
+              </label>
+              <Input
+                type="number"
+                min="1"
+                max="180"
+                value={pomodoro}
+                onChange={(e) => setPomodoro(e.target.value)}
+                required
+              />
             </div>
 
-            <Toggle
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="section-label mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  {t('focus.shortBreakDuration')}
+                </label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="60"
+                  value={shortBreak}
+                  onChange={(e) => setShortBreak(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="section-label mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  {t('focus.longBreakDuration')}
+                </label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="90"
+                  value={longBreak}
+                  onChange={(e) => setLongBreak(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section 2: WLED Smart Strip Integration ── */}
+          <div className="border-t border-gray-200 dark:border-zinc-800 pt-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">💡</span>
+                <div>
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+                    شريط الإضاءة الذكي (WLED / ESP32)
+                  </h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    مزامنة مؤقت بومودورو مع شريط الـ Addressable RGB كـ Progress Bar حقيقي
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <ToggleSwitch
               checked={wled.enabled}
-              onChange={v => patchWled({ enabled: v })}
-              label="Enable WLED Pomodoro Progress"
+              onChange={(val) => patchWled({ enabled: val })}
+              label="تفعيل مزامنة WLED"
+              description="إرسال تقدم الجلسة لحظياً إلى شريط الإضاءة عبر الشبكة المحلية"
             />
 
             {wled.enabled && (
-              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-                {/* IP */}
+              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 space-y-4 text-right">
+                {/* IP Address */}
                 <div>
-                  <label style={labelStyle}>WLED IP Address</label>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                    عنوان IP الخاص بالـ ESP32 (WLED IP)
+                  </label>
                   <Input
-                    placeholder="192.168.1.xxx"
+                    placeholder="مثال: 192.168.1.50"
                     value={wled.ip}
-                    onChange={e => patchWled({ ip: e.target.value })}
+                    onChange={(e) => patchWled({ ip: e.target.value })}
                   />
-                  <p style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 4 }}>
-                    Find it in the WLED app → Info tab
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                    يمكنك معرفة الـ IP من تطبيق WLED أو من إعدادات الراوتر.
                   </p>
                 </div>
 
-                {/* LED count + Brightness (two columns) */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {/* LED Count + Brightness */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label style={labelStyle}>LED Count</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                      عدد المصابيح / اللمبات (LEDs)
+                    </label>
                     <Input
                       type="number"
                       min="1"
-                      max="1000"
+                      max="2000"
                       value={wled.ledCount}
-                      onChange={e => patchWled({ ledCount: e.target.value })}
+                      onChange={(e) => patchWled({ ledCount: e.target.value })}
                     />
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                      مثال: 86 مصباح في شريطك.
+                    </p>
                   </div>
+
                   <div>
-                    <label style={labelStyle}>Brightness (0–255)</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                      درجة السطوع (0 – 255)
+                    </label>
                     <Input
                       type="number"
-                      min="10"
+                      min="5"
                       max="255"
                       value={wled.brightness}
-                      onChange={e => patchWled({ brightness: e.target.value })}
+                      onChange={(e) => patchWled({ brightness: e.target.value })}
                     />
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                      الافتراضي: 128 (سطوع مريح).
+                    </p>
                   </div>
                 </div>
 
-                {/* Phase colour legend */}
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  {[
-                    { label: 'Work',        color: '#FF7800' },
-                    { label: 'Short Break', color: '#00C850' },
-                    { label: 'Long Break',  color: '#1E64FF' },
-                  ].map(({ label, color }) => (
-                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--color-text-secondary)' }}>
-                      <span style={{ width: 12, height: 12, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                      {label}
-                    </div>
-                  ))}
+                {/* Progress Direction Mode */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-1.5">
+                    نمط التقدم (Progress Mode)
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => patchWled({ mode: 'countdown' })}
+                      className={`p-2.5 rounded-xl text-xs font-medium border text-center transition-all ${
+                        wled.mode !== 'fill'
+                          ? 'bg-emerald-500/10 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold'
+                          : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      <div className="font-semibold">تنازلي (موصى به)</div>
+                      <div className="text-[10px] opacity-75 mt-0.5">مضاءة كلها وتنطفئ تدريجياً</div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => patchWled({ mode: 'fill' })}
+                      className={`p-2.5 rounded-xl text-xs font-medium border text-center transition-all ${
+                        wled.mode === 'fill'
+                          ? 'bg-emerald-500/10 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold'
+                          : 'bg-white dark:bg-zinc-800 border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      <div className="font-semibold">تصاعدي</div>
+                      <div className="text-[10px] opacity-75 mt-0.5">تبدأ مطفأة وتضيء تدريجياً</div>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Test button */}
+                {/* Phase Colors Legend */}
+                <div className="pt-2 border-t border-gray-200/60 dark:border-zinc-800/80">
+                  <span className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2">
+                    ألوان المراحل التلقائية:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-3 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded-full bg-[#FF5000] shadow-sm" />
+                      <span className="text-gray-700 dark:text-gray-300">العمل (برتقالي دافئ)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded-full bg-[#00FF3C] shadow-sm" />
+                      <span className="text-gray-700 dark:text-gray-300">استراحة قصيرة (أخضر)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-3 h-3 rounded-full bg-[#0078FF] shadow-sm" />
+                      <span className="text-gray-700 dark:text-gray-300">استراحة طويلة (أزرق)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Test Connection Button */}
                 <WledTestButton
                   ip={wled.ip}
-                  ledCount={Number(wled.ledCount) || 30}
-                  brightness={Number(wled.brightness) || 128}
+                  ledCount={wled.ledCount}
+                  brightness={wled.brightness}
                 />
+
+                {/* CORS Note */}
+                <div className="text-[11px] text-gray-500 dark:text-gray-400 leading-normal p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                  💡 <strong>ملاحظة:</strong> تأكد من تفعيل CORS في صفحة WLED:
+                  <code className="mx-1 px-1 py-0.5 rounded bg-gray-200 dark:bg-zinc-800 text-[10px]">
+                    Settings → Security → Allow CORS: ✓
+                  </code>
+                </div>
               </div>
             )}
           </div>

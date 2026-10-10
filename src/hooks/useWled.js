@@ -1,26 +1,32 @@
 /**
- * useWled — WLED HTTP API integration for Pomodoro LED progress bar
+ * useWled — WLED HTTP / JSON API integration for Pomodoro LED strip progress bar
  *
- * Behaviour:
- *  • Work  (mode 0 / custom 3) → orange progress bar fading left→right
- *  • Short break (mode 1)       → green  progress bar
- *  • Long  break (mode 2)       → blue   progress bar
- *  • Session complete           → flash effect then steady glow, then LEDs off
- *  • Timer paused / reset       → LEDs turn off
+ * Designed for ESP32 / ESP8266 running WLED firmware.
+ *
+ * Behavior:
+ *  • Work session (Pomodoro / Custom work): Warm Orange / Red progress bar
+ *  • Short break: Emerald Green countdown
+ *  • Long break: Electric Blue countdown
+ *  • End of session: 3x quick flash alert + 3s gentle breathing glow, then standby
+ *  • Timer paused / stopped: LEDs turn off (standby)
+ *  • Direction modes:
+ *      - 'countdown': Starts with ALL LEDs lit, extinguishes one-by-one as time counts down (Default)
+ *      - 'fill': Starts with LEDs off, lights up one-by-one as time elapses
  *
  * Settings are persisted in localStorage under 'pillar_wled_prefs'.
  */
 
 import { useRef, useCallback } from 'react'
 
-/* ─── Defaults ─────────────────────────────────────────────── */
+/* ─── Defaults & Storage ────────────────────────────────────── */
 const STORAGE_KEY = 'pillar_wled_prefs'
 
 export const WLED_DEFAULTS = {
   enabled: false,
   ip: '',
-  ledCount: 30,
+  ledCount: 86,
   brightness: 128,
+  mode: 'countdown', // 'countdown' | 'fill'
 }
 
 export function loadWledPrefs() {
@@ -37,11 +43,11 @@ export function saveWledPrefs(prefs) {
   } catch {}
 }
 
-/* ─── Phase colour map ──────────────────────────────────────── */
-const PHASE_COLORS = {
-  work:       [255, 120,  0],   // warm orange
-  shortBreak: [0,   200, 80],   // emerald green
-  longBreak:  [30,  100, 255],  // calm blue
+/* ─── Phase Colors (RGB arrays for WLED) ────────────────────── */
+export const PHASE_COLORS = {
+  work:       [255, 80,  0],    // Warm Orange / Red
+  shortBreak: [0,   255, 60],   // Emerald Green
+  longBreak:  [0,   120, 255],  // Electric Blue
 }
 
 function modeToPhase(modeKey) {
@@ -50,131 +56,220 @@ function modeToPhase(modeKey) {
   return 'work'
 }
 
-/* ─── WLED API helpers ──────────────────────────────────────── */
+/* ─── WLED API Helpers ──────────────────────────────────────── */
 function buildUrl(ip) {
-  const host = ip.startsWith('http') ? ip : `http://${ip}`
-  return `${host.replace(/\/$/, '')}/json/state`
+  const cleanIp = ip.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+  return `http://${cleanIp}/json/state`
 }
 
 async function sendWled(ip, payload) {
+  if (!ip) return
   try {
     await fetch(buildUrl(ip), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(1500),
+      signal: AbortSignal.timeout(1800),
     })
   } catch (err) {
-    // Silent — don't disrupt the timer if WLED is unreachable
-    console.warn('[WLED] Request failed:', err?.message)
+    // Silent fail so network timeouts don't block the UI timer
+    console.warn('[WLED] Network notice:', err?.message)
   }
 }
 
-/** Turn off all LEDs */
-async function wledOff(ip) {
+/** Turn off all LEDs (standby) */
+export async function wledOff(ip) {
+  if (!ip) return
   await sendWled(ip, { on: false })
 }
 
-/** Show a solid progress bar: `ledsLit` LEDs lit from index 0 */
-async function wledProgress(ip, ledCount, ledsLit, color, brightness) {
-  const lit = Math.max(0, Math.min(ledCount, ledsLit))
+/** Show progress on the strip */
+export async function wledProgress(ip, ledCount, ledsLit, color, brightness) {
+  if (!ip || !ledCount) return
+  const count = Math.max(1, Number(ledCount) || 86)
+  const lit = Math.max(0, Math.min(count, Math.round(ledsLit)))
+
+  let seg = []
+  if (lit === 0) {
+    // All off
+    seg = [{ id: 0, start: 0, stop: count, col: [[0, 0, 0]], fx: 0 }]
+  } else if (lit >= count) {
+    // All lit
+    seg = [
+      { id: 0, start: 0, stop: count, col: [color], fx: 0 },
+      { id: 1, start: count, stop: count, col: [[0, 0, 0]], fx: 0 },
+    ]
+  } else {
+    // First `lit` LEDs colored, remaining dark
+    seg = [
+      { id: 0, start: 0, stop: lit, col: [color], fx: 0 },
+      { id: 1, start: lit, stop: count, col: [[0, 0, 0]], fx: 0 },
+    ]
+  }
+
   await sendWled(ip, {
     on: true,
-    bri: brightness,
-    seg: [
-      {
-        id: 0,
-        start: 0,
-        stop: ledCount,
-        fx: 0,       // Solid
-        col: [[0, 0, 0]],
-      },
-      ...(lit > 0
-        ? [{
-            id: 1,
-            start: 0,
-            stop: lit,
-            fx: 0,
-            col: [color],
-          }]
-        : []),
-    ],
+    bri: Math.max(5, Math.min(255, Number(brightness) || 128)),
+    seg,
   })
 }
 
-/** Flash then gentle breathing to signal session end */
-async function wledComplete(ip, ledCount, color, brightness) {
-  // Flash 3× quickly
+/** Alert effect: 3 quick flashes + 3s breathe + off */
+export async function wledComplete(ip, ledCount, color, brightness) {
+  if (!ip) return
+  const count = Math.max(1, Number(ledCount) || 86)
+  const bri = Math.max(5, Math.min(255, Number(brightness) || 128))
+
+  // 3 quick flashes
   for (let i = 0; i < 3; i++) {
-    await sendWled(ip, { on: true, bri: 255, seg: [{ id: 0, start: 0, stop: ledCount, fx: 0, col: [color] }] })
-    await new Promise(r => setTimeout(r, 160))
+    await sendWled(ip, {
+      on: true,
+      bri: 255,
+      seg: [{ id: 0, start: 0, stop: count, col: [color], fx: 0 }],
+    })
+    await new Promise(r => setTimeout(r, 180))
     await sendWled(ip, { on: false })
-    await new Promise(r => setTimeout(r, 160))
+    await new Promise(r => setTimeout(r, 180))
   }
-  // Gentle breathing for 3 seconds then off
-  await sendWled(ip, { on: true, bri: brightness, seg: [{ id: 0, start: 0, stop: ledCount, fx: 2 /* Breathe */, col: [color] }] })
-  await new Promise(r => setTimeout(r, 3000))
+
+  // Gentle breathing effect for 3.5 seconds
+  await sendWled(ip, {
+    on: true,
+    bri,
+    seg: [{ id: 0, start: 0, stop: count, col: [color], fx: 2 /* Breathe */ }],
+  })
+  await new Promise(r => setTimeout(r, 3500))
   await wledOff(ip)
+}
+
+/** Test connection helper with live feedback */
+export async function testWledConnection(ip, ledCount, brightness) {
+  if (!ip || !ip.trim()) {
+    return { ok: false, error: 'الرجاء إدخال عنوان IP الخاص بـ WLED أولاً' }
+  }
+
+  const count = Math.max(1, Number(ledCount) || 86)
+  const bri = Math.max(10, Math.min(255, Number(brightness) || 128))
+
+  try {
+    const url = buildUrl(ip)
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        on: true,
+        bri,
+        seg: [{ id: 0, start: 0, stop: count, col: [[0, 255, 60]], fx: 0 }],
+      }),
+      signal: AbortSignal.timeout(3000),
+    })
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`)
+    }
+
+    // Keep lit green for 2 seconds then turn off
+    setTimeout(() => {
+      wledOff(ip)
+    }, 2000)
+
+    return { ok: true }
+  } catch (err) {
+    return {
+      ok: false,
+      error: err.name === 'TimeoutError'
+        ? 'انتهت مهلة الاتصال (تأكد أن الجهاز على نفس الشبكة المحلية وتأكد من الـ IP)'
+        : 'تعذر الاتصال بالـ ESP32. تأكد من تفعيل CORS في WLED: Settings → Security → Allow CORS: ✓',
+    }
+  }
 }
 
 /* ─── Hook ──────────────────────────────────────────────────── */
 /**
- * @param {object} prefs  — { enabled, ip, ledCount, brightness }
- * @param {object} modes  — the modes array from Focus.jsx
+ * @param {object} prefs - { enabled, ip, ledCount, brightness, mode }
+ * @param {Array} modes  - modes list from Focus.jsx
  */
 export function useWled(prefs, modes) {
-  const lastUpdateRef = useRef(0)
+  const lastTickRef = useRef(0)
 
-  const isActive = prefs.enabled && prefs.ip && prefs.ledCount > 0
+  const isActive = Boolean(
+    prefs &&
+    prefs.enabled &&
+    prefs.ip &&
+    prefs.ip.trim().length > 0 &&
+    Number(prefs.ledCount) > 0
+  )
 
   /**
-   * Call every second while the timer is running.
-   * @param {number} modeIndex  — current mode index
-   * @param {number} secondsLeft — remaining seconds
+   * Called every tick while countdown is running.
+   * Rate-limited to max 1 request per 900ms.
    */
   const onTick = useCallback((modeIndex, secondsLeft) => {
     if (!isActive) return
 
-    // Rate limit: max 1 request per second (skip if called too fast)
     const now = Date.now()
-    if (now - lastUpdateRef.current < 900) return
-    lastUpdateRef.current = now
+    if (now - lastTickRef.current < 900) return
+    lastTickRef.current = now
 
     const currentMode = modes[modeIndex]
-    if (!currentMode || currentMode.duration === 0) return  // stopwatch: skip
+    if (!currentMode || currentMode.duration <= 0) return // skip stopwatch
 
     const phase = modeToPhase(currentMode.key)
     const color = PHASE_COLORS[phase]
     const totalSecs = currentMode.duration
-    const elapsed = totalSecs - secondsLeft
-    const ledsLit = Math.ceil((elapsed / totalSecs) * prefs.ledCount)
+    const ledCount = Number(prefs.ledCount) || 86
 
-    wledProgress(prefs.ip, prefs.ledCount, ledsLit, color, prefs.brightness)
+    let ledsLit = ledCount
+    if (prefs.mode === 'fill') {
+      // Ascending (fills up)
+      const elapsed = Math.max(0, totalSecs - secondsLeft)
+      ledsLit = Math.ceil((elapsed / totalSecs) * ledCount)
+    } else {
+      // Countdown (extinguishes one by one, default)
+      const ratio = Math.max(0, Math.min(1, secondsLeft / totalSecs))
+      ledsLit = Math.ceil(ratio * ledCount)
+    }
+
+    wledProgress(prefs.ip, ledCount, ledsLit, color, prefs.brightness)
   }, [isActive, prefs, modes])
 
-  /** Call when the timer is paused or reset */
+  /** Called when timer starts */
+  const onStart = useCallback((modeIndex) => {
+    if (!isActive) return
+    const currentMode = modes[modeIndex]
+    if (!currentMode || currentMode.duration <= 0) return
+
+    const phase = modeToPhase(currentMode.key)
+    const color = PHASE_COLORS[phase]
+    const ledCount = Number(prefs.ledCount) || 86
+
+    // On start:
+    // If countdown: all LEDs are lit!
+    // If fill: 1st LED is lit!
+    const ledsLit = prefs.mode === 'fill' ? 1 : ledCount
+    wledProgress(prefs.ip, ledCount, ledsLit, color, prefs.brightness)
+  }, [isActive, prefs, modes])
+
+  /** Called when timer is paused or reset */
   const onPause = useCallback(() => {
     if (!isActive) return
     wledOff(prefs.ip)
   }, [isActive, prefs.ip])
 
-  /** Call when a session completes */
+  /** Called when timer completes */
   const onComplete = useCallback((modeKey) => {
     if (!isActive) return
     const phase = modeToPhase(modeKey)
     const color = PHASE_COLORS[phase]
-    wledComplete(prefs.ip, prefs.ledCount, color, prefs.brightness)
+    const ledCount = Number(prefs.ledCount) || 86
+    wledComplete(prefs.ip, ledCount, color, prefs.brightness)
   }, [isActive, prefs])
 
-  /** Call when the timer starts (lights the first LED immediately) */
-  const onStart = useCallback((modeIndex) => {
-    if (!isActive) return
-    const currentMode = modes[modeIndex]
-    if (!currentMode || currentMode.duration === 0) return
-    const phase = modeToPhase(currentMode.key)
-    const color = PHASE_COLORS[phase]
-    wledProgress(prefs.ip, prefs.ledCount, 1, color, prefs.brightness)
-  }, [isActive, prefs, modes])
-
-  return { onTick, onPause, onComplete, onStart, isActive }
+  return {
+    isActive,
+    onTick,
+    onStart,
+    onPause,
+    onComplete,
+  }
 }
