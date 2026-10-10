@@ -11,6 +11,7 @@ import Input from '../components/ui/Input'
 import EmptyState from '../components/ui/EmptyState'
 import FocusSettingsModal from '../components/focus/FocusSettingsModal'
 import PageLayout from '../components/layout/PageLayout'
+import { useWled, loadWledPrefs } from '../hooks/useWled'
 
 /* ─── Config & Storage Defaults ────────────────────────────── */
 const DEFAULT_PREFS = {
@@ -160,6 +161,7 @@ export default function Focus() {
 
   // Pro settings state
   const [prefs, setPrefs] = useState(loadFocusPrefs)
+  const [wledPrefs, setWledPrefs] = useState(loadWledPrefs)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isFullScreen, setIsFullScreen] = useState(false)
   const containerRef = useRef(null)
@@ -207,6 +209,9 @@ export default function Focus() {
   useEffect(() => { modeRef.current = mode }, [mode])
   useEffect(() => { modesRef.current = modes }, [modes])
 
+  /* ── WLED LED Integration ── */
+  const wled = useWled(wledPrefs, modes)
+
   /* ── Fullscreen API Synchronization ── */
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
@@ -234,13 +239,16 @@ export default function Focus() {
 
   /* ── Preferences Update ── */
   const handleSavePrefs = (newPrefs) => {
-    setPrefs(newPrefs)
-    localStorage.setItem('pillar_focus_prefs', JSON.stringify(newPrefs))
+    const { wled: newWled, ...timerPrefs } = newPrefs
+    setPrefs(timerPrefs)
+    localStorage.setItem('pillar_focus_prefs', JSON.stringify(timerPrefs))
+    // Also sync WLED prefs into local state (already persisted by the modal)
+    if (newWled) setWledPrefs(newWled)
     // If timer is idle, immediately update duration for active standard mode
     if (!running) {
-      if (mode === 0) setSecondsLeft(newPrefs.pomodoro * 60)
-      else if (mode === 1) setSecondsLeft(newPrefs.short_break * 60)
-      else if (mode === 2) setSecondsLeft(newPrefs.long_break * 60)
+      if (mode === 0) setSecondsLeft(timerPrefs.pomodoro * 60)
+      else if (mode === 1) setSecondsLeft(timerPrefs.short_break * 60)
+      else if (mode === 2) setSecondsLeft(timerPrefs.long_break * 60)
     }
     toastFocus?.(t('focus.saveSettings'), '')
   }
@@ -316,6 +324,9 @@ export default function Focus() {
       ? 'long_break'
       : 'pomodoro'
 
+    // Fire WLED completion flash + breathe effect
+    wled.onComplete(currentMode.key)
+
     const now = new Date()
     const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`
     const defaultLabel = currentMode.key === 'custom'
@@ -365,7 +376,7 @@ export default function Focus() {
     } else {
       toastFocus?.(t('focus.breakOverToast'), '')
     }
-  }, [loadFocusData, pomodoros, toastFocus, toastStreak, t])
+  }, [loadFocusData, pomodoros, toastFocus, toastStreak, t, wled])
 
   /* ── Handle Stopwatch Stop/Completion ── */
   const handleStopwatchComplete = useCallback(async () => {
@@ -415,6 +426,7 @@ export default function Focus() {
   useEffect(() => {
     if (!running) {
       clearInterval(intervalRef.current)
+      wled.onPause()
       return
     }
 
@@ -422,26 +434,31 @@ export default function Focus() {
       startedAtRef.current = new Date().toISOString()
     }
 
+    // Signal WLED to light the first LED immediately on start
+    wled.onStart(mode)
+
     if (mode === 4) {
-      // Stopwatch: count UP
+      // Stopwatch: count UP — no WLED progress (duration unknown)
       intervalRef.current = setInterval(() => {
         setStopwatchSeconds(prev => prev + 1)
       }, 1000)
     } else {
-      // Countdown: count DOWN
+      // Countdown: count DOWN + send WLED progress each tick
       intervalRef.current = setInterval(() => {
         setSecondsLeft(prev => {
           if (prev <= 1) {
             handleComplete()
             return 0
           }
-          return prev - 1
+          const next = prev - 1
+          wled.onTick(modeRef.current, next)
+          return next
         })
       }, 1000)
     }
 
     return () => clearInterval(intervalRef.current)
-  }, [running, mode, handleComplete])
+  }, [running, mode, handleComplete, wled])
 
   /* ── Mode switching & reset ── */
   const switchMode = (idx) => {
@@ -526,8 +543,36 @@ export default function Focus() {
         sidebarClassName="w-full lg:w-80 lg:shrink-0"
         header={
           <div className="focus-top-bar">
-            <div className="focus-badge">
-              🍅 <strong>{stats.today_sessions ?? pomodoros}</strong> {t('focus.sessions')}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="focus-badge">
+                🍅 <strong>{stats.today_sessions ?? pomodoros}</strong> {t('focus.sessions')}
+              </div>
+              {wled.isActive && (
+                <div
+                  title={`WLED connected · ${wledPrefs.ledCount} LEDs`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '3px 10px',
+                    borderRadius: 20,
+                    background: 'rgba(16,185,129,.12)',
+                    border: '1px solid rgba(16,185,129,.25)',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#10b981',
+                    userSelect: 'none',
+                  }}
+                >
+                  <span style={{
+                    width: 7, height: 7, borderRadius: '50%',
+                    background: '#10b981',
+                    boxShadow: '0 0 6px #10b981',
+                    animation: running ? 'pulse 1.5s infinite' : 'none',
+                  }} />
+                  LED
+                </div>
+              )}
             </div>
 
             <div className="focus-top-actions">
