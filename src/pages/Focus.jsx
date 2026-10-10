@@ -553,7 +553,7 @@ export default function Focus() {
               </div>
               {wled.isActive && (
                 <div
-                  title={`WLED Connected · ${wledPrefs.ip} · ${wledPrefs.ledCount} LEDs`}
+                  title={`WLED Connected · ${wledPrefs.ip} · ${wledPrefs.ledCount} LEDs${wledPrefs.hyperionSync ? ' · Hyperion Sync Active' : ''}`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -578,7 +578,7 @@ export default function Focus() {
                       animation: running ? 'pulse 1.5s infinite' : 'none',
                     }}
                   />
-                  <span>WLED ({wledPrefs.ledCount} LEDs)</span>
+                  <span>WLED ({wledPrefs.ledCount} LEDs{wledPrefs.hyperionSync ? ' + Hyperion' : ''})</span>
                 </div>
               )}
             </div>

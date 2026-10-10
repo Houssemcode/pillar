@@ -1,17 +1,20 @@
 /**
  * useWled — WLED HTTP / JSON API integration for Pomodoro LED strip progress bar
+ * with Hyperion Ambilight seamless co-existence and synchronization.
  *
- * Designed for ESP32 / ESP8266 running WLED firmware.
+ * Designed for ESP32 / ESP8266 running WLED firmware, co-existing with Hyperion.
  *
  * Behavior:
- *  • Work session (Pomodoro / Custom work): Warm Orange / Red progress bar
+ *  • Work session: Warm White (~2700K-3000K, soft and calming for focus)
  *  • Short break: Emerald Green countdown
  *  • Long break: Electric Blue countdown
- *  • End of session: 3x quick flash alert + 3.5s gentle breathing glow, then standby
- *  • Timer paused / stopped: LEDs turn off (standby)
- *  • Direction modes:
- *      - 'countdown': Starts with ALL LEDs lit, extinguishes one-by-one as time counts down (Default)
- *      - 'fill': Starts with LEDs off, lights up one-by-one as time elapses
+ *  • Hyperion synchronization:
+ *      - While timer runs: WLED uses `lor: 1` (Live Override) so the timer displays smoothly
+ *        without being overwritten by Hyperion's UDP stream.
+ *      - When timer pauses/finishes: WLED uses `lor: 0` (Release Override) so Hyperion
+ *        seamlessly and immediately resumes ambient lighting without turning off the LEDs!
+ *      - Supports dedicated Segment ID (e.g. Segment 1 for timer, Segment 0 for Hyperion).
+ *      - Optional Hyperion JSON-RPC API integration for direct component control.
  *
  * Settings are persisted in localStorage under 'pillar_wled_prefs'.
  */
@@ -27,6 +30,9 @@ export const WLED_DEFAULTS = {
   ledCount: 86,
   brightness: 128,
   mode: 'countdown', // 'countdown' | 'fill'
+  segmentId: 0,      // WLED segment index (0 by default)
+  hyperionSync: true,// Seamless handoff with Hyperion
+  hyperionIp: '',    // Optional Hyperion IP:port (e.g. 192.168.1.50:8090)
 }
 
 export function loadWledPrefs() {
@@ -45,7 +51,7 @@ export function saveWledPrefs(prefs) {
 
 /* ─── Phase Colors (RGB arrays for WLED) ────────────────────── */
 export const PHASE_COLORS = {
-  work:       [255, 80,  0],    // Warm Orange / Red
+  work:       [255, 190, 120],  // Warm White (~2700K-3000K أبيض دافئ مريح للتركيز)
   shortBreak: [0,   255, 60],   // Emerald Green
   longBreak:  [0,   120, 255],  // Electric Blue
 }
@@ -78,27 +84,64 @@ async function sendWled(ip, payload) {
       signal: AbortSignal.timeout(1800),
     })
   } catch (err) {
-    // Silent fail so network timeouts don't disrupt timer
     console.warn('[WLED] Network notice:', err?.message)
   }
 }
 
-/** Turn off all LEDs (standby) */
-export async function wledOff(ip) {
+/** Optional direct communication with Hyperion JSON-RPC server */
+async function sendHyperion(hyperionHost, isEnabled) {
+  if (!hyperionHost || !hyperionHost.trim()) return
+  const cleanHost = hyperionHost.trim().replace(/^https?:\/\//, '')
+  const url = `http://${cleanHost}/json-rpc`
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        command: 'componentstate',
+        componentstate: {
+          component: 'LEDDEVICE',
+          state: isEnabled,
+        },
+      }),
+      signal: AbortSignal.timeout(1500),
+    })
+  } catch (err) {
+    console.warn('[Hyperion] Notice:', err?.message)
+  }
+}
+
+/** Turn off LEDs or hand back control immediately to Hyperion */
+export async function wledOff(ip, options = {}) {
   if (!ip) return
-  await sendWled(ip, { on: false })
+  const isHyperion = Boolean(options.hyperionSync)
+
+  if (isHyperion) {
+    // Release live data override (lor: 0) so Hyperion resumes streaming ambient colors instantly!
+    await sendWled(ip, {
+      on: true,
+      lor: 0,
+    })
+    if (options.hyperionIp) {
+      sendHyperion(options.hyperionIp, true)
+    }
+  } else {
+    // Standard turn-off when not using Hyperion
+    await sendWled(ip, { on: false })
+  }
 }
 
 /**
  * Show progress on the strip using WLED individual range addressing `i`.
- * This explicitly turns ON the lit range and turns OFF (black: "000000")
- * the remaining pixels without modifying segment boundaries.
+ * Features live override `lor: 1` when Hyperion is synchronized.
  */
-export async function wledProgress(ip, ledCount, ledsLit, color, brightness) {
+export async function wledProgress(ip, ledCount, ledsLit, color, brightness, options = {}) {
   if (!ip || !ledCount) return
   const count = Math.max(1, Number(ledCount) || 86)
   const lit = Math.max(0, Math.min(count, Math.round(ledsLit)))
   const hex = rgbToHex(color)
+  const segId = Number(options.segmentId) || 0
+  const isHyperion = Boolean(options.hyperionSync)
 
   let iArray = []
   if (lit <= 0) {
@@ -112,12 +155,12 @@ export async function wledProgress(ip, ledCount, ledsLit, color, brightness) {
     iArray = [0, lit, hex, lit, count, '000000']
   }
 
-  await sendWled(ip, {
+  const payload = {
     on: true,
     bri: Math.max(5, Math.min(255, Number(brightness) || 128)),
     seg: [
       {
-        id: 0,
+        id: segId,
         start: 0,
         stop: count,
         fx: 0, // Solid
@@ -125,22 +168,35 @@ export async function wledProgress(ip, ledCount, ledsLit, color, brightness) {
         i: iArray,
       },
     ],
-  })
+  }
+
+  // Activate live override so Hyperion stream doesn't overwrite the timer
+  if (isHyperion) {
+    payload.lor = 1
+  }
+
+  await sendWled(ip, payload)
+
+  if (isHyperion && options.hyperionIp) {
+    sendHyperion(options.hyperionIp, false)
+  }
 }
 
-/** Alert effect: 3 quick flashes + 3.5s breathe + off */
-export async function wledComplete(ip, ledCount, color, brightness) {
+/** Alert effect: 3 quick flashes + 3.5s breathe + restore Hyperion / off */
+export async function wledComplete(ip, ledCount, color, brightness, options = {}) {
   if (!ip) return
   const count = Math.max(1, Number(ledCount) || 86)
   const bri = Math.max(5, Math.min(255, Number(brightness) || 128))
   const hex = rgbToHex(color)
+  const segId = Number(options.segmentId) || 0
 
   // 3 quick flashes
   for (let i = 0; i < 3; i++) {
     await sendWled(ip, {
       on: true,
+      lor: 1,
       bri: 255,
-      seg: [{ id: 0, start: 0, stop: count, fx: 0, col: [color], i: [0, count, hex] }],
+      seg: [{ id: segId, start: 0, stop: count, fx: 0, col: [color], i: [0, count, hex] }],
     })
     await new Promise(r => setTimeout(r, 180))
     await sendWled(ip, { on: false })
@@ -150,21 +206,23 @@ export async function wledComplete(ip, ledCount, color, brightness) {
   // Gentle breathing effect for 3.5 seconds
   await sendWled(ip, {
     on: true,
+    lor: 1,
     bri,
-    seg: [{ id: 0, start: 0, stop: count, fx: 2 /* Breathe */, col: [color] }],
+    seg: [{ id: segId, start: 0, stop: count, fx: 2 /* Breathe */, col: [color] }],
   })
   await new Promise(r => setTimeout(r, 3500))
-  await wledOff(ip)
+  await wledOff(ip, options)
 }
 
-/** Test connection helper with live feedback */
-export async function testWledConnection(ip, ledCount, brightness) {
+/** Test connection helper with live feedback and Hyperion restoration */
+export async function testWledConnection(ip, ledCount, brightness, options = {}) {
   if (!ip || !ip.trim()) {
     return { ok: false, error: 'الرجاء إدخال عنوان IP الخاص بـ WLED أولاً' }
   }
 
   const count = Math.max(1, Number(ledCount) || 86)
   const bri = Math.max(10, Math.min(255, Number(brightness) || 128))
+  const segId = Number(options.segmentId) || 0
 
   try {
     const url = buildUrl(ip)
@@ -173,15 +231,16 @@ export async function testWledConnection(ip, ledCount, brightness) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         on: true,
+        lor: 1, // override live stream during test
         bri,
         seg: [
           {
-            id: 0,
+            id: segId,
             start: 0,
             stop: count,
             fx: 0,
-            col: [[0, 255, 60]],
-            i: [0, count, '00FF3C'],
+            col: [[255, 190, 120]], // Warm white
+            i: [0, count, 'FFBE78'],
           },
         ],
       }),
@@ -192,10 +251,10 @@ export async function testWledConnection(ip, ledCount, brightness) {
       throw new Error(`HTTP ${res.status}`)
     }
 
-    // Keep lit green for 2 seconds then turn off
+    // Keep lit warm white for 2.5 seconds then hand back to Hyperion / standby
     setTimeout(() => {
-      wledOff(ip)
-    }, 2000)
+      wledOff(ip, options)
+    }, 2500)
 
     return { ok: true }
   } catch (err) {
@@ -216,7 +275,7 @@ export async function testWledConnection(ip, ledCount, brightness) {
 
 /* ─── Hook ──────────────────────────────────────────────────── */
 /**
- * @param {object} prefs - { enabled, ip, ledCount, brightness, mode }
+ * @param {object} prefs - { enabled, ip, ledCount, brightness, mode, segmentId, hyperionSync, hyperionIp }
  * @param {Array} modes  - modes list from Focus.jsx
  */
 export function useWled(prefs, modes) {
@@ -268,7 +327,7 @@ export function useWled(prefs, modes) {
     if (ledsLit !== lastSentLitRef.current || (now - lastTickRef.current > 15000)) {
       lastSentLitRef.current = ledsLit
       lastTickRef.current = now
-      wledProgress(p.ip, ledCount, ledsLit, color, p.brightness)
+      wledProgress(p.ip, ledCount, ledsLit, color, p.brightness, p)
     }
   }, [])
 
@@ -288,7 +347,7 @@ export function useWled(prefs, modes) {
     const ledsLit = p.mode === 'fill' ? 1 : ledCount
     lastSentLitRef.current = ledsLit
     lastTickRef.current = Date.now()
-    wledProgress(p.ip, ledCount, ledsLit, color, p.brightness)
+    wledProgress(p.ip, ledCount, ledsLit, color, p.brightness, p)
   }, [])
 
   /** Called when timer is paused or reset */
@@ -296,7 +355,7 @@ export function useWled(prefs, modes) {
     const p = prefsRef.current
     if (!p?.enabled || !p?.ip) return
     lastSentLitRef.current = -1
-    wledOff(p.ip)
+    wledOff(p.ip, p)
   }, [])
 
   /** Called when timer completes */
@@ -308,7 +367,7 @@ export function useWled(prefs, modes) {
     const color = PHASE_COLORS[phase]
     const ledCount = Number(p.ledCount) || 86
     lastSentLitRef.current = -1
-    wledComplete(p.ip, ledCount, color, p.brightness)
+    wledComplete(p.ip, ledCount, color, p.brightness, p)
   }, [])
 
   return useMemo(() => ({

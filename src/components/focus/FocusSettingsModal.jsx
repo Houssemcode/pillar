@@ -35,14 +35,14 @@ function ToggleSwitch({ checked, onChange, label, description }) {
 }
 
 /* ─── WLED Test Connection Button ──────────────────────────── */
-function WledTestButton({ ip, ledCount, brightness }) {
+function WledTestButton({ ip, ledCount, brightness, options }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null) // null | { ok: true } | { ok: false, error: string }
 
   const handleTest = async () => {
     setLoading(true)
     setResult(null)
-    const res = await testWledConnection(ip, ledCount, brightness)
+    const res = await testWledConnection(ip, ledCount, brightness, options)
     setLoading(false)
     setResult(res)
   }
@@ -64,14 +64,14 @@ function WledTestButton({ ip, ledCount, brightness }) {
           ) : (
             <>
               <span>⚡</span>
-              <span>اختبار الاتصال بالـ ESP32</span>
+              <span>اختبار الاتصال والمزامنة</span>
             </>
           )}
         </button>
 
         {result && result.ok && (
           <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-            <span>✓</span> متصل بنجاح (أضاء الشريط بالأخضر)
+            <span>✓</span> متصل بنجاح (أضاء الشريط بالأبيض الدافئ)
           </span>
         )}
       </div>
@@ -122,6 +122,9 @@ export default function FocusSettingsModal({ isOpen, onClose, prefs, onSave }) {
       ledCount: Math.max(1, Math.min(2000, Number(wled.ledCount) || 86)),
       brightness: Math.max(5, Math.min(255, Number(wled.brightness) || 128)),
       mode: wled.mode === 'fill' ? 'fill' : 'countdown',
+      segmentId: Math.max(0, Math.min(15, Number(wled.segmentId) || 0)),
+      hyperionSync: wled.hyperionSync !== false,
+      hyperionIp: (wled.hyperionIp || '').trim(),
     }
 
     saveWledPrefs(cleanWled)
@@ -201,7 +204,7 @@ export default function FocusSettingsModal({ isOpen, onClose, prefs, onSave }) {
                     شريط الإضاءة الذكي (WLED / ESP32)
                   </h4>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    مزامنة مؤقت بومودورو مع شريط الـ Addressable RGB كـ Progress Bar حقيقي
+                    مزامنة مؤقت بومودورو مع شريط الـ RGB وتوافقه مع Hyperion
                   </p>
                 </div>
               </div>
@@ -261,7 +264,7 @@ export default function FocusSettingsModal({ isOpen, onClose, prefs, onSave }) {
                       onChange={(e) => patchWled({ brightness: e.target.value })}
                     />
                     <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                      الافتراضي: 128 (سطوع مريح).
+                      الافتراضي: 128 (سطوع دافئ ومريح).
                     </p>
                   </div>
                 </div>
@@ -300,25 +303,86 @@ export default function FocusSettingsModal({ isOpen, onClose, prefs, onSave }) {
                   </div>
                 </div>
 
-                {/* Phase Colors Legend */}
+                {/* Phase Colors Legend (Warm White for Work) */}
                 <div className="pt-2 border-t border-gray-200/60 dark:border-zinc-800/80">
                   <span className="block text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2">
                     ألوان المراحل التلقائية:
                   </span>
                   <div className="flex flex-wrap items-center gap-3 text-xs">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded-full bg-[#FF5000] shadow-sm" />
-                      <span className="text-gray-700 dark:text-gray-300">العمل (برتقالي دافئ)</span>
+                      <span className="w-3.5 h-3.5 rounded-full bg-[#FFBE78] border border-amber-300/40 shadow-sm" />
+                      <span className="text-gray-800 dark:text-gray-200 font-medium">العمل (أبيض دافئ 2700K)</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded-full bg-[#00FF3C] shadow-sm" />
+                      <span className="w-3.5 h-3.5 rounded-full bg-[#00FF3C] shadow-sm" />
                       <span className="text-gray-700 dark:text-gray-300">استراحة قصيرة (أخضر)</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-3 h-3 rounded-full bg-[#0078FF] shadow-sm" />
+                      <span className="w-3.5 h-3.5 rounded-full bg-[#0078FF] shadow-sm" />
                       <span className="text-gray-700 dark:text-gray-300">استراحة طويلة (أزرق)</span>
                     </div>
                   </div>
+                </div>
+
+                {/* ── Section 3: Hyperion Ambilight Synchronization ── */}
+                <div className="pt-3 border-t border-gray-200/60 dark:border-zinc-800/80 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🌈</span>
+                    <span className="text-xs font-bold text-gray-900 dark:text-white">
+                      تكامل وتزامن مع برنامج Hyperion (Ambilight)
+                    </span>
+                  </div>
+
+                  <ToggleSwitch
+                    checked={wled.hyperionSync !== false}
+                    onChange={(val) => patchWled({ hyperionSync: val })}
+                    label="التزامن الذكي مع Hyperion"
+                    description="يسمح لـ Hyperion بالعمل على نفس شريط الإضاءة: يعرض المؤقت أثناء العمل، ويستأنف Hyperion فوراً عند الإيقاف المؤقت أو اكتمال الجلسة."
+                  />
+
+                  {wled.hyperionSync !== false && (
+                    <div className="p-3 rounded-xl bg-white dark:bg-zinc-800/70 border border-gray-200/80 dark:border-zinc-700/80 space-y-3 text-xs">
+                      <div className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed">
+                        ✨ <strong>آلية التزامن التلقائي (Live Hand-off):</strong>
+                        <ul className="list-disc list-inside mt-1 space-y-1 text-gray-500 dark:text-gray-400">
+                          <li><strong>أثناء تشغيل المؤقت:</strong> يتوقف بث Hyperion مؤقتاً لعرض المؤقت بالأبيض الدافئ.</li>
+                          <li><strong>عند الإيقاف المؤقت أو انتهاء الجلسة:</strong> يستأنف Hyperion فوراً إضاءته التفاعلية على الشريط دون إطفاء.</li>
+                        </ul>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                            رقم المقطع (WLED Segment ID)
+                          </label>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="15"
+                            value={wled.segmentId ?? 0}
+                            onChange={(e) => patchWled({ segmentId: e.target.value })}
+                          />
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                            الافتراضي 0 (الشريط كاملاً)، أو رقم مقطع مخصص إذا قسمت الشريط في WLED.
+                          </p>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                            عنوان Hyperion (اختياري)
+                          </label>
+                          <Input
+                            placeholder="مثال: 192.168.1.50:8090"
+                            value={wled.hyperionIp || ''}
+                            onChange={(e) => patchWled({ hyperionIp: e.target.value })}
+                          />
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                            للتحكم المباشر الإضافي عبر Hyperion API.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Test Connection Button */}
@@ -326,9 +390,14 @@ export default function FocusSettingsModal({ isOpen, onClose, prefs, onSave }) {
                   ip={wled.ip}
                   ledCount={wled.ledCount}
                   brightness={wled.brightness}
+                  options={{
+                    segmentId: wled.segmentId,
+                    hyperionSync: wled.hyperionSync,
+                    hyperionIp: wled.hyperionIp,
+                  }}
                 />
 
-                {/* CORS Note */}
+                {/* Guidance & CORS Note */}
                 <div className="text-[11px] text-gray-500 dark:text-gray-400 leading-normal p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/10 space-y-1.5">
                   <div>
                     💡 <strong>معدل التناقص:</strong> ينطفئ مصباح واحد كل <code>(مدة الجلسة ÷ عدد المصابيح)</code> ثانية (مثلاً: في جلسة 25 دقيقة مع 86 مصباح، ينطفئ مصباح كل ~17.5 ثانية).
